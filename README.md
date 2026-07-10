@@ -27,19 +27,35 @@
 
 ## 開發
 
-需要 Node.js 22.13 以上。
+需要 Node.js 24 以上。
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
 建置與檢查：
 
 ```bash
-npm run build
-npx tsc --noEmit
+npm run lint
+npx tsc --noEmit --incremental false
+npm test
 ```
+
+容器化執行：
+
+```bash
+docker build -t panshi .
+docker run --rm -p 3000:3000 -e SITE_URL=http://localhost:3000 panshi
+```
+
+健康檢查：`GET /api/health`。
+
+## 公開版本
+
+- Nomad SustainTech：<https://nomadsustaintech.com/apps/panshi/>
+- 正式環境以非特權、非 root Docker 容器執行。
+- `SITE_URL` 用來產生 canonical 與社群分享網址；它不是秘密。
 
 ## 產品研究
 

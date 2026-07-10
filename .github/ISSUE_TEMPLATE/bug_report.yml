@@ -1,0 +1,85 @@
+name: Bug report
+description: Report a reproducible problem with the application.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve the project. Do not include passwords, API keys, personal data, or private vulnerability details. Report security issues through the process in `SECURITY.md`.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Briefly describe the problem and what you expected instead.
+      placeholder: A clear, concise description of the issue.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Provide the smallest reliable sequence that reproduces the problem.
+      placeholder: |
+        1. Open …
+        2. Enter …
+        3. Select …
+        4. Observe …
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: Describe what should have happened.
+    validations:
+      required: true
+
+  - type: input
+    id: company-code
+    attributes:
+      label: Company code, if relevant
+      description: Enter only a public market symbol. Do not include account or personal information.
+      placeholder: "2330"
+
+  - type: dropdown
+    id: device
+    attributes:
+      label: Device type
+      options:
+        - Desktop or laptop
+        - Mobile phone
+        - Tablet
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: Safari 19, Chrome 140, Firefox 142
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Additional context
+      description: Add screenshots, console output, or other context after removing sensitive information.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Submission checks
+      options:
+        - label: I searched existing issues for the same problem.
+          required: true
+        - label: I removed credentials, personal data, and other sensitive information.
+          required: true
+        - label: This report does not disclose a security vulnerability publicly.
+          required: true
