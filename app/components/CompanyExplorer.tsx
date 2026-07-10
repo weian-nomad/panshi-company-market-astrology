@@ -15,6 +15,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { HeroInstrument } from "./HeroInstrument";
 
 type AnchorKey = "listing" | "established";
 type RangeKey = "3M" | "6M" | "1Y";
@@ -751,7 +752,10 @@ export function CompanyExplorer() {
       <section className="hero" id="top">
         <div className="hero-copy">
           <p className="eyebrow"><span /> 企業命盤 × 價格時間線</p>
-          <h1>把公司的時間，<br />放回股價裡看。</h1>
+          <h1>
+            <span className="hero-title-line">把公司的時間，</span>
+            <span className="hero-title-line hero-title-line--shift">放回股價裡看。</span>
+          </h1>
           <p className="hero-lead">
             輸入股票代號，把成立日或首日交易建成命盤基準，
             再把主要行運標回歷史價格。看的是過去如何重合，不把巧合說成保證。
@@ -800,21 +804,7 @@ export function CompanyExplorer() {
           </div>
         </div>
 
-        <aside className="hero-orbit" aria-label="產品方法摘要">
-          <div className="orbit-disc" aria-hidden="true">
-            <i className="orbit orbit--one" />
-            <i className="orbit orbit--two" />
-            <i className="orbit orbit--three" />
-            <span className="orbit-planet orbit-planet--one" />
-            <span className="orbit-planet orbit-planet--two" />
-            <b>盤<br />勢</b>
-          </div>
-          <div className="hero-orbit-note">
-            <span>ANCHOR</span>
-            <strong>日期是一級資料</strong>
-            <p>成立、掛牌與上市不混用；時間不知就不編宮位。</p>
-          </div>
-        </aside>
+        <HeroInstrument />
       </section>
 
       <div className="status-region" aria-live="polite">

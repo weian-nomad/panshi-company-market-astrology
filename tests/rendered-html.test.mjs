@@ -71,13 +71,28 @@ test("server-renders the 盤勢 product shell and metadata", async () => {
 });
 
 test("removes starter assets and keeps product-specific sources", async () => {
-  const [page, layout, css, packageJson, registry, socialCard] = await Promise.all([
+  const [
+    page,
+    layout,
+    css,
+    packageJson,
+    heroInstrument,
+    registry,
+    socialCard,
+    heroImage,
+    displayFont,
+    fontLicense,
+  ] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/HeroInstrument.tsx", import.meta.url), "utf8"),
     stat(new URL("../data/twse-company-registry.json", import.meta.url)),
     stat(new URL("../public/og.jpg", import.meta.url)),
+    stat(new URL("../public/images/panshi-celestial-market.webp", import.meta.url)),
+    stat(new URL("../public/fonts/panshi-display.woff2", import.meta.url)),
+    stat(new URL("../public/fonts/OFL-Chiron-Sung-HK.txt", import.meta.url)),
   ]);
 
   assert.match(page, /CompanyExplorer/);
@@ -85,11 +100,19 @@ test("removes starter assets and keeps product-specific sources", async () => {
   assert.match(layout, /images: \[imageUrl\]/);
   assert.match(css, /--vermilion:\s*#b64236/);
   assert.match(css, /--jade:\s*#2f7163/);
+  assert.match(css, /font-family:\s*"Panshi Display"/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.match(packageJson, /"name": "panshi-company-market-astrology"/);
+  assert.match(packageJson, /"motion"/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton|site-creator-vinext-starter/);
+  assert.match(heroInstrument, /from "motion\/react"/);
+  assert.match(heroInstrument, /useReducedMotion/);
+  assert.match(heroInstrument, /panshi-celestial-market\.webp/);
   assert.ok(registry.size > 100_000);
   assert.ok(socialCard.size > 100_000);
+  assert.ok(heroImage.size > 200_000 && heroImage.size < 500_000);
+  assert.ok(displayFont.size > 80_000 && displayFont.size < 250_000);
+  assert.ok(fontLicense.size > 4_000);
 
   await assert.rejects(access(new URL("app/_sites-preview", templateRoot)));
   await assert.rejects(access(new URL("public/favicon.svg", templateRoot)));
