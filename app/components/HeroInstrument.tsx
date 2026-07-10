@@ -113,6 +113,7 @@ export function HeroInstrument() {
               alt="黑鋼與黃銅天體儀交疊藍色歷史價格軌跡"
               fill
               priority
+              unoptimized
               sizes="(max-width: 920px) 100vw, (max-width: 1180px) 44vw, 560px"
             />
           </motion.div>
