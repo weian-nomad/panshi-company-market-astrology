@@ -52,7 +52,11 @@ async function withRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
       lastErr = err;
       const message = err instanceof Error ? err.message : String(err);
       console.warn(`  retry ${attempt + 1}/${MAX_RETRIES} for ${label}: ${message}`);
-      await sleep(1500 * (attempt + 1));
+      // A failure here is almost always a bad pick among TWSE/TPEx's several
+      // round-robin backend IPs, not congestion — a near-immediate retry
+      // "rerolls" onto a different backend rather than waiting out a problem
+      // that a longer backoff wouldn't actually help with.
+      await sleep(300 * (attempt + 1));
     }
   }
   throw lastErr;

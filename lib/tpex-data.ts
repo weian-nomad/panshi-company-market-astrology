@@ -7,8 +7,12 @@ export const TPEX_PRICE_ENDPOINT =
   "https://www.tpex.org.tw/web/stock/aftertrading/otc_quotes_no1430/stk_wn1430_result.php";
 export const TPEX_PRICE_SOURCE_PAGE = "https://www.tpex.org.tw/zh-tw/mainboard/trading/info/mi-index.html";
 
-const REGISTRY_TIMEOUT_MS = 15_000;
-const DAILY_BULK_TIMEOUT_MS = 8_000;
+// TWSE/TPEx resolve to several round-robin backend IPs; some are
+// intermittently unreachable from our host while others respond in well
+// under a second. A short timeout + retry (see withRetry callers) "rerolls"
+// onto a different backend fast, instead of one bad pick eating 8+ seconds.
+const REGISTRY_TIMEOUT_MS = 6_000;
+const DAILY_BULK_TIMEOUT_MS = 3_000;
 
 type TpexCompanyRaw = {
   SecuritiesCompanyCode: string;

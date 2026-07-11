@@ -183,12 +183,14 @@ export function markIngestDay(market: Market, date: string, status: IngestStatus
     .run(market, date, status, rowCount, new Date().toISOString());
 }
 
+/** "error" is deliberately NOT considered done — a failed day should be
+ * retried on the next run, not silently skipped forever. */
 export function isIngestDayDone(market: Market, date: string): boolean {
   const conn = getMarketDb();
   const row = conn
     .prepare(`SELECT status FROM ingest_log WHERE market = ? AND date = ?`)
     .get(market, date) as { status: string } | undefined;
-  return row !== undefined;
+  return row !== undefined && row.status !== "error";
 }
 
 export function getIngestStats() {

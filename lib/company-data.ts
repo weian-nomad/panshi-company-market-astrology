@@ -38,9 +38,13 @@ export const HOLIDAY_ENDPOINT = "https://www.twse.com.tw/holidaySchedule/holiday
 export const HOLIDAY_SOURCE_PAGE = "https://www.twse.com.tw/zh/trading/holiday.html";
 export const DAILY_ALL_ENDPOINT = "https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX";
 
-const DAILY_BULK_TIMEOUT_MS = 8_000;
-const REGISTRY_TIMEOUT_MS = 15_000;
-const HOLIDAY_TIMEOUT_MS = 8_000;
+// TWSE/TPEx resolve to several round-robin backend IPs; some are
+// intermittently unreachable from our host while others respond in well
+// under a second. A short timeout + retry (see withRetry callers) "rerolls"
+// onto a different backend fast, instead of one bad pick eating 8+ seconds.
+const DAILY_BULK_TIMEOUT_MS = 3_000;
+const REGISTRY_TIMEOUT_MS = 6_000;
+const HOLIDAY_TIMEOUT_MS = 4_000;
 
 export const INDUSTRIES: Record<string, string> = {
   "01": "水泥工業",
