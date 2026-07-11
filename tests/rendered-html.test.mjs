@@ -77,6 +77,7 @@ test("removes starter assets and keeps product-specific sources", async () => {
     css,
     packageJson,
     heroInstrument,
+    companyExplorer,
     registry,
     socialCard,
     heroImage,
@@ -88,6 +89,7 @@ test("removes starter assets and keeps product-specific sources", async () => {
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
     readFile(new URL("../app/components/HeroInstrument.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/CompanyExplorer.tsx", import.meta.url), "utf8"),
     stat(new URL("../data/twse-company-registry.json", import.meta.url)),
     stat(new URL("../public/og.jpg", import.meta.url)),
     stat(new URL("../public/images/panshi-celestial-market.webp", import.meta.url)),
@@ -109,6 +111,9 @@ test("removes starter assets and keeps product-specific sources", async () => {
   assert.match(heroInstrument, /useReducedMotion/);
   assert.match(heroInstrument, /panshi-celestial-market\.webp/);
   assert.match(heroInstrument, /unoptimized/);
+  assert.match(companyExplorer, /window\.location\.pathname\.replace/);
+  assert.match(companyExplorer, /`\$\{appBasePath\}\/api\/company\?/);
+  assert.doesNotMatch(companyExplorer, /fetch\(`\/api\/company\?/);
   assert.ok(registry.size > 100_000);
   assert.ok(socialCard.size > 100_000);
   assert.ok(heroImage.size > 200_000 && heroImage.size < 500_000);

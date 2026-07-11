@@ -581,7 +581,8 @@ export function CompanyExplorer() {
     setSelectedEventId(null);
 
     try {
-      const response = await fetch(`/api/company?symbol=${encodeURIComponent(symbol)}&months=13`, {
+      const appBasePath = window.location.pathname.replace(/\/+$/, "");
+      const response = await fetch(`${appBasePath}/api/company?symbol=${encodeURIComponent(symbol)}&months=13`, {
         signal: controller.signal,
       });
       const data = await response.json() as CompanyPayload | { error?: string };
