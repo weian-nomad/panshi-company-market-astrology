@@ -1,11 +1,3 @@
-@font-face {
-  font-family: "Panshi Display";
-  font-style: normal;
-  font-display: swap;
-  font-weight: 200 900;
-  src: url("/fonts/panshi-display.woff2") format("woff2-variations");
-}
-
 :root {
   --ink: #141512;
   --ink-soft: #27302d;
@@ -25,7 +17,7 @@
   --up: #b3313b;
   --down: #14764d;
   --focus: #275d8d;
-  --display: "Panshi Display", "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+  --display: var(--font-panshi-display), "Noto Serif TC", "Songti TC", "PMingLiU", serif;
   --serif: var(--display);
   --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
   --mono: "IBM Plex Mono", "SFMono-Regular", "Roboto Mono", ui-monospace, monospace;

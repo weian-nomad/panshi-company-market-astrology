@@ -1,8 +1,18 @@
 import type { Metadata, Viewport } from "next";
+import localFont from "next/font/local";
 import { headers } from "next/headers";
+import { APP_BASE_PATH } from "@/lib/app-config";
 import "@fontsource/ibm-plex-mono/latin-400.css";
 import "@fontsource/ibm-plex-mono/latin-600.css";
 import "./globals.css";
+
+const panshiDisplay = localFont({
+  src: "../public/fonts/panshi-display.woff2",
+  variable: "--font-panshi-display",
+  display: "swap",
+  weight: "200 900",
+  fallback: ["Noto Serif TC", "Songti TC", "PMingLiU", "serif"],
+});
 
 export async function generateMetadata(): Promise<Metadata> {
   const incoming = await headers();
@@ -10,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = /^[a-z0-9.:[\]-]+$/i.test(rawHost) ? rawHost : "localhost:3000";
   const protocol = incoming.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
   const configuredOrigin = process.env.SITE_URL?.trim().replace(/\/$/, "");
-  const origin = configuredOrigin || `${protocol}://${host}`;
+  const origin = configuredOrigin || `${protocol}://${host}${APP_BASE_PATH}`;
   const imageUrl = `${origin}/og.jpg`;
 
   return {
@@ -52,7 +62,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="zh-Hant">
+    <html lang="zh-Hant" className={panshiDisplay.variable}>
       <body>{children}</body>
     </html>
   );

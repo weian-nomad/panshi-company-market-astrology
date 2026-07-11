@@ -10,6 +10,7 @@
     "build": "next build",
     "start": "next start -H 0.0.0.0",
     "test": "npm run build && node --test tests/rendered-html.test.mjs",
+    "test:browser": "node scripts/browser-smoke.mjs",
     "lint": "eslint . --ignore-pattern .next --ignore-pattern dist"
   },
   "dependencies": {

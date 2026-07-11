@@ -46,10 +46,12 @@ npm test
 
 ```bash
 docker build -t panshi .
-docker run --rm -p 3000:3000 -e SITE_URL=http://localhost:3000 panshi
+docker run --rm -p 3000:3000 -e SITE_URL=http://localhost:3000/apps/panshi panshi
 ```
 
-健康檢查：`GET /api/health`。
+本機入口：<http://localhost:3000/apps/panshi/>
+
+健康檢查：`GET /apps/panshi/api/health`。
 
 ## 公開版本
 

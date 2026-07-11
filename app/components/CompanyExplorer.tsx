@@ -6,6 +6,7 @@ import type {
   TransitEvent,
   UpcomingTransitEvent,
 } from "@/lib/astrology";
+import { APP_BASE_PATH } from "@/lib/app-config";
 import {
   FormEvent,
   PointerEvent as ReactPointerEvent,
@@ -581,13 +582,12 @@ export function CompanyExplorer() {
     setSelectedEventId(null);
 
     try {
-      const appBasePath = window.location.pathname.replace(/\/+$/, "");
-      const response = await fetch(`${appBasePath}/api/company?symbol=${encodeURIComponent(symbol)}&months=13`, {
+      const response = await fetch(`${APP_BASE_PATH}/api/company?symbol=${encodeURIComponent(symbol)}&months=13`, {
         signal: controller.signal,
       });
-      const data = await response.json() as CompanyPayload | { error?: string };
-      if (!response.ok || !("company" in data)) {
-        throw new Error(("error" in data && data.error) || "資料暫時無法取得");
+      const data = await response.json().catch(() => null) as CompanyPayload | { error?: string } | null;
+      if (!response.ok || !data || !("company" in data)) {
+        throw new Error((data && "error" in data && data.error) || "資料暫時無法取得");
       }
       setPayload(data);
       setQuery(data.company.symbol);

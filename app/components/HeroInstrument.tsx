@@ -1,5 +1,6 @@
 "use client";
 
+import { APP_BASE_PATH } from "@/lib/app-config";
 import Image from "next/image";
 import { PointerEvent, useRef, useState } from "react";
 import {
@@ -89,7 +90,7 @@ export function HeroInstrument() {
       aria-label="命盤基準、價格軌跡與觀測印記的互動主視覺"
       onPointerMove={handlePointerMove}
       onPointerLeave={resetPointer}
-      initial={reduceMotion ? false : { opacity: 0, y: 22 }}
+      initial={false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
       style={reduceMotion ? undefined : { rotateX, rotateY, transformPerspective: 1200 }}
@@ -109,7 +110,7 @@ export function HeroInstrument() {
             style={reduceMotion ? undefined : { x: imageX, y: imageY }}
           >
             <Image
-              src="/images/panshi-celestial-market.webp"
+              src={`${APP_BASE_PATH}/images/panshi-celestial-market.webp`}
               alt="黑鋼與黃銅天體儀交疊藍色歷史價格軌跡"
               fill
               priority
