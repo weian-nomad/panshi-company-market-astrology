@@ -8,7 +8,8 @@
 
 ## 現在有什麼
 
-- 不用登入的臺股上市公司代號搜尋。
+- 不用登入的臺股上市（TWSE）+ 上櫃（TPEx）公司代號搜尋。
+- 本機 SQLite 快取全部上市櫃公司 7 年歷史 OHLCV（見「資料快取」），不用每次請求即時打外部 API。
 - 「公司成立日」與「首日上市交易」雙命盤基準。
 - 日期來源、交易所時區、時間精度與信心等級。
 - 行星本命輪、公司「時間質地」與所選行運相位。
@@ -24,13 +25,24 @@
 
 ## 資料與計算
 
-- 公司成立／上市資料：[臺灣證券交易所 OpenAPI](https://openapi.twse.com.tw/)。專案內含精簡快照，避免首次載入要下載整份公司資料表。
-- 歷史股價：[臺灣證券交易所個股日成交資訊](https://www.twse.com.tw/zh/trading/historical/stock-day.html)，目前顯示原始收盤價，未還原除權息。
+- 公司成立／上市資料：[臺灣證券交易所 OpenAPI](https://openapi.twse.com.tw/)（上市）+ [證券櫃檯買賣中心 OpenAPI](https://www.tpex.org.tw/openapi/) `mopsfin_t187ap03_O`（上櫃）。專案內含精簡快照，避免首次載入要下載整份公司資料表。
+- 歷史股價：TWSE 全市場單日行情（`MI_INDEX`）+ TPEx 全市場單日行情（`stk_wn1430_result.php`），逐日整批下載後存進本機 SQLite，目前顯示原始收盤價，未還原除權息。
 - 交易日：[臺灣證券交易所市場開休市日期](https://www.twse.com.tw/zh/trading/holiday.html)。公告日曆不包含尚未發生的臨時休市。
-- 公司事件：[臺灣證券交易所 OpenAPI](https://openapi.twse.com.tw/)。目前接入除權息、股東會、當期重大訊息與暫停交易；法說與財報排程尚未完整覆蓋。
+- 公司事件：[臺灣證券交易所 OpenAPI](https://openapi.twse.com.tw/)。目前只接入 TWSE 除權息、股東會、當期重大訊息與暫停交易；TPEx 對應事件與法說/財報排程尚未涵蓋。
 - 行星黃經：`astronomy-engine`。
 - 首日交易盤以 `Asia/Taipei` 09:00 為開盤代理值，明確標記為「推定時間」。
 - 成立日通常沒有時分，其他行星以當日中點估算；月亮、上升、宮位與其他時辰敏感結果保持空白。
+
+## 資料快取
+
+正式環境不會每次請求都即時打 TWSE/TPEx API——`lib/market-data.ts` 先讀本機 SQLite 快取，只在快取有缺口時（例如每日排程還沒跑到的最近幾天）才即時補抓，且有 wall-clock 上限，不會為了補歷史資料卡住請求。
+
+```bash
+npm run backfill:market   # 一次性回填 7 年資料，可重複執行、可從中斷處繼續
+npm run update:market     # 每日增量更新最近幾天，跑在 cron/systemd timer
+```
+
+`MARKET_DB_PATH` 指到的 SQLite 檔案在正式環境必須是掛載 volume，見 [docs/deployment.md](docs/deployment.md)。
 
 ## 開發
 

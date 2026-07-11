@@ -9,10 +9,10 @@ import {
   INDUSTRIES,
   PRICE_SOURCE_PAGE,
   compactDate,
-  fetchPriceHistory,
-  findCompany,
   resolveTradingDate,
 } from "@/lib/company-data";
+import { TPEX_PRICE_SOURCE_PAGE } from "@/lib/tpex-data";
+import { findCompanyUnified, getPriceHistoryUnified } from "@/lib/market-data";
 import { buildExactConfigurationStudy } from "@/lib/event-study";
 import { fetchCompanyEventCheck } from "@/lib/company-events";
 import type {
@@ -22,7 +22,7 @@ import type {
 } from "@/lib/inquiry-types";
 import { isInquiryAnchor } from "@/lib/inquiry-types";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 const HISTORY_MONTHS = 84;
 const HORIZONS = new Set<InquiryHorizon>([5, 20, 60]);
@@ -78,10 +78,10 @@ export async function GET(request: Request) {
       );
     }
 
-    const row = findCompany(symbol);
+    const row = findCompanyUnified(symbol);
     if (!row) {
       return NextResponse.json(
-        { error: `找不到上市公司 ${symbol}，請確認股票代號。` },
+        { error: `找不到上市櫃公司 ${symbol}，請確認股票代號。` },
         { status: 404 },
       );
     }
@@ -90,7 +90,7 @@ export async function GET(request: Request) {
     const establishedDate = compactDate(row.establishedDate);
     const [tradingSession, history] = await Promise.all([
       resolveTradingDate(requestedDate),
-      fetchPriceHistory(symbol, HISTORY_MONTHS, { notBefore: listingDate }),
+      getPriceHistoryUnified(symbol, row.market, HISTORY_MONTHS, { notBefore: listingDate }),
     ]);
     if (!history.bars.length) {
       throw new Error("目前無法取得足夠的歷史價格，請稍後再試。");
@@ -164,7 +164,7 @@ export async function GET(request: Request) {
         ],
       },
       sources: {
-        price: PRICE_SOURCE_PAGE,
+        price: row.market === "TWSE" ? PRICE_SOURCE_PAGE : TPEX_PRICE_SOURCE_PAGE,
         calendar: HOLIDAY_SOURCE_PAGE,
         events: "https://openapi.twse.com.tw/",
         generatedAt: new Date().toISOString(),

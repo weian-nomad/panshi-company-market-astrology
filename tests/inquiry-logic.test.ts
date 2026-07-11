@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { HistoricalTransitEpisode, PriceBar } from "../lib/astrology";
-import { buildMonthKeys, parseHolidaySchedule } from "../lib/company-data";
+import { parseHolidaySchedule } from "../lib/company-data";
 import { buildExactConfigurationStudy } from "../lib/event-study";
 import { isInquiryAnchor } from "../lib/inquiry-types";
 import { startsNewTransitEpisode } from "../lib/transit-episodes";
@@ -9,14 +9,6 @@ import { startsNewTransitEpisode } from "../lib/transit-episodes";
 function bar(date: string, close = 100): PriceBar {
   return { date, open: close, high: close + 1, low: close - 1, close, volume: 1 };
 }
-
-test("price history months stop at the known listing month", () => {
-  const now = new Date(Date.UTC(2026, 6, 11));
-  assert.deepEqual(
-    buildMonthKeys(12, "2026-05-20", now),
-    ["20260501", "20260601", "20260701"],
-  );
-});
 
 test("holiday schedules from the wrong year are rejected", () => {
   const wrongYear = parseHolidaySchedule({

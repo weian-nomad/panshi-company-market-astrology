@@ -1,11 +1,6 @@
 import companyRegistry from "@/data/twse-company-registry.json";
 import type { PriceBar } from "@/lib/astrology";
-
-type TwseMonth = {
-  stat?: string;
-  date?: string;
-  data?: string[][];
-};
+import { fetchWithTimeout } from "@/lib/http-timeout";
 
 type TwseHolidaySchedule = {
   stat?: string;
@@ -38,15 +33,14 @@ export type PriceHistory = {
 };
 
 export const COMPANY_ENDPOINT = "https://openapi.twse.com.tw/v1/opendata/t187ap03_L";
-export const PRICE_ENDPOINT = "https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY";
-export const PRICE_FALLBACK_ENDPOINT = "https://www.twse.com.tw/exchangeReport/STOCK_DAY";
 export const PRICE_SOURCE_PAGE = "https://www.twse.com.tw/zh/trading/historical/stock-day.html";
 export const HOLIDAY_ENDPOINT = "https://www.twse.com.tw/holidaySchedule/holidaySchedule";
 export const HOLIDAY_SOURCE_PAGE = "https://www.twse.com.tw/zh/trading/holiday.html";
+export const DAILY_ALL_ENDPOINT = "https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX";
 
-const PRICE_REQUEST_TIMEOUT_MS = 5_000;
-const PRICE_HISTORY_DEADLINE_MS = 24_000;
-const PRICE_CONCURRENCY = 10;
+const DAILY_BULK_TIMEOUT_MS = 8_000;
+const REGISTRY_TIMEOUT_MS = 15_000;
+const HOLIDAY_TIMEOUT_MS = 8_000;
 
 export const INDUSTRIES: Record<string, string> = {
   "01": "水泥工業",
@@ -101,146 +95,106 @@ export function registryReportDate(value: string) {
   return compactDate(cleaned);
 }
 
-function rocDate(value: string) {
-  const match = /^(\d{2,3})\/(\d{2})\/(\d{2})$/.exec(value.trim());
-  if (!match) throw new Error("股價日期格式不正確");
-  const year = Number(match[1]) + 1911;
-  return `${year}-${match[2]}-${match[3]}`;
-}
-
 function numberValue(value: string) {
   const numeric = Number(String(value || "").replace(/,/g, "").trim());
   return Number.isFinite(numeric) ? numeric : 0;
 }
 
-export function buildMonthKeys(total: number, notBefore?: string, now = new Date()) {
-  const keys: string[] = [];
-  for (let offset = total - 1; offset >= 0; offset -= 1) {
-    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - offset, 1));
-    keys.push(
-      `${date.getUTCFullYear()}${String(date.getUTCMonth() + 1).padStart(2, "0")}01`,
-    );
-  }
-  const firstApplicableMonth = notBefore
-    ? `${notBefore.slice(0, 4)}${notBefore.slice(5, 7)}01`
-    : null;
-  return firstApplicableMonth
-    ? keys.filter((key) => key >= firstApplicableMonth)
-    : keys;
-}
-
-async function fetchTwseMonth(
-  endpoint: string,
-  symbol: string,
-  date: string,
-  deadlineAt: number,
-) {
-  const remaining = deadlineAt - Date.now();
-  if (remaining <= 0) return null;
-  const url = new URL(endpoint);
-  url.searchParams.set("date", date);
-  url.searchParams.set("stockNo", symbol);
-  url.searchParams.set("response", "json");
-
-  const controller = new AbortController();
-  const timeout = setTimeout(
-    () => controller.abort(),
-    Math.max(1, Math.min(PRICE_REQUEST_TIMEOUT_MS, remaining)),
-  );
-  try {
-    const response = await fetch(url, {
-      headers: { Accept: "application/json" },
-      signal: controller.signal,
-      next: { revalidate: 21_600 },
-    });
-    if (!response.ok) return null;
-    const payload = (await response.json()) as TwseMonth;
-    if (Array.isArray(payload.data)) return payload;
-    if (/沒有符合|no data/i.test(payload.stat || "")) return { ...payload, data: [] };
-    return null;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-async function fetchMonthWithFallback(symbol: string, date: string, deadlineAt: number) {
-  const primary = await fetchTwseMonth(PRICE_ENDPOINT, symbol, date, deadlineAt);
-  if (primary) return primary;
-  return fetchTwseMonth(PRICE_FALLBACK_ENDPOINT, symbol, date, deadlineAt);
-}
-
-export async function fetchPriceHistory(
-  symbol: string,
-  months: number,
-  options?: { notBefore?: string },
-): Promise<PriceHistory> {
-  const keys = buildMonthKeys(months, options?.notBefore);
-  const results: Array<TwseMonth | null> = new Array(keys.length).fill(null);
-  const deadlineAt = Date.now() + PRICE_HISTORY_DEADLINE_MS;
-  let nextIndex = 0;
-
-  async function worker() {
-    while (nextIndex < keys.length && Date.now() < deadlineAt) {
-      const index = nextIndex;
-      nextIndex += 1;
-      results[index] = await fetchMonthWithFallback(symbol, keys[index], deadlineAt);
-    }
-  }
-
-  await Promise.all(
-    Array.from({ length: Math.min(PRICE_CONCURRENCY, keys.length) }, () => worker()),
-  );
-
-  const byDate = new Map<string, PriceBar>();
-  for (const payload of results) {
-    if (!payload?.data) continue;
-    for (const row of payload.data) {
-      if (!Array.isArray(row) || row.length < 9) continue;
-      try {
-        const bar = {
-          date: rocDate(row[0]),
-          volume: numberValue(row[1]),
-          open: numberValue(row[3]),
-          high: numberValue(row[4]),
-          low: numberValue(row[5]),
-          close: numberValue(row[6]),
-        };
-        if (bar.close > 0) byDate.set(bar.date, bar);
-      } catch {
-        continue;
-      }
-    }
-  }
-
-  const bars = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
-  const missingMonths = keys.filter((_, index) => results[index] === null);
-  return {
-    bars,
-    coverage: {
-      requestedMonths: keys.length,
-      receivedMonths: keys.length - missingMonths.length,
-      missingMonths,
-      from: bars[0]?.date || null,
-      to: bars.at(-1)?.date || null,
-      sessions: bars.length,
-      complete: missingMonths.length === 0,
-      basis: "raw-unadjusted-close",
-    },
-  };
-}
-
-export async function fetchPriceBars(
-  symbol: string,
-  months: number,
-  options?: { notBefore?: string },
-): Promise<PriceBar[]> {
-  return (await fetchPriceHistory(symbol, months, options)).bars;
-}
-
 export function findCompany(symbol: string): CompanyRecord | null {
   return companyRegistry.find((item) => item.symbol === symbol) ?? null;
+}
+
+type TwseDailyTable = {
+  title?: string;
+  fields?: string[];
+  data?: string[][];
+};
+
+/**
+ * Bulk daily OHLCV for ALL TWSE securities on one trading day (one request
+ * instead of one per symbol). Returns an empty array for non-trading days
+ * (weekends/holidays) — that is the normal "nothing happened" case, not an
+ * error.
+ */
+export async function fetchTwseDailyQuotes(
+  isoDate: string,
+): Promise<Array<{ symbol: string; bar: PriceBar }>> {
+  const compact = isoDate.replace(/-/g, "");
+  const url = new URL(DAILY_ALL_ENDPOINT);
+  url.searchParams.set("response", "json");
+  url.searchParams.set("date", compact);
+  url.searchParams.set("type", "ALLBUT0999");
+
+  const response = await fetchWithTimeout(
+    url,
+    { headers: { Accept: "application/json" } },
+    DAILY_BULK_TIMEOUT_MS,
+  );
+  if (!response.ok) throw new Error(`TWSE 股價 HTTP ${response.status}`);
+  const payload = (await response.json()) as { tables?: TwseDailyTable[] };
+  const table = payload.tables?.find((item) => (item.title || "").includes("每日收盤行情"));
+  if (!table || !Array.isArray(table.data)) return [];
+
+  const results: Array<{ symbol: string; bar: PriceBar }> = [];
+  for (const row of table.data) {
+    if (!Array.isArray(row) || row.length < 9) continue;
+    const symbol = String(row[0] || "").trim();
+    if (!/^\d{4}[A-Z]?$/.test(symbol)) continue;
+    const close = numberValue(row[8]);
+    if (close <= 0) continue;
+    results.push({
+      symbol,
+      bar: {
+        date: isoDate,
+        volume: numberValue(row[2]),
+        open: numberValue(row[5]),
+        high: numberValue(row[6]),
+        low: numberValue(row[7]),
+        close,
+      },
+    });
+  }
+  return results;
+}
+
+type TwseCompanyRaw = {
+  出表日期: string;
+  公司代號: string;
+  公司名稱: string;
+  公司簡稱: string;
+  產業別: string;
+  成立日期: string;
+  上市日期: string;
+  英文簡稱: string;
+  網址: string;
+};
+
+/** Live refresh of the TWSE company registry (the committed JSON is a point-in-time snapshot). */
+export async function fetchTwseCompanyRegistryLive() {
+  const response = await fetchWithTimeout(
+    COMPANY_ENDPOINT,
+    { headers: { Accept: "application/json" } },
+    REGISTRY_TIMEOUT_MS,
+  );
+  if (!response.ok) throw new Error(`TWSE 公司資料 HTTP ${response.status}`);
+  const payload = (await response.json()) as TwseCompanyRaw[];
+  if (!Array.isArray(payload)) throw new Error("TWSE 公司資料格式不正確");
+
+  return payload
+    .filter((row) => /^\d{4}[A-Z]?$/.test((row.公司代號 || "").trim()))
+    .map((row) => ({
+      symbol: row.公司代號.trim(),
+      market: "TWSE" as const,
+      shortName: (row.公司簡稱 || "").trim(),
+      fullName: (row.公司名稱 || "").trim(),
+      englishName: (row.英文簡稱 || "").trim(),
+      establishedDate: registryReportDate(row.成立日期 || ""),
+      listingDate: registryReportDate(row.上市日期 || ""),
+      industryCode: (row.產業別 || "").trim(),
+      website: (row.網址 || "").trim(),
+      reportDate: (row.出表日期 || "").trim(),
+    }))
+    .filter((row) => row.establishedDate && row.listingDate);
 }
 
 function validateIsoDate(value: string) {
@@ -301,10 +255,11 @@ async function fetchHolidaySchedule(year: number) {
   url.searchParams.set("response", "json");
   url.searchParams.set("queryYear", String(year - 1911));
   try {
-    const response = await fetch(url, {
-      headers: { Accept: "application/json" },
-      next: { revalidate: 86_400 },
-    });
+    const response = await fetchWithTimeout(
+      url,
+      { headers: { Accept: "application/json" }, next: { revalidate: 86_400 } },
+      HOLIDAY_TIMEOUT_MS,
+    );
     if (!response.ok) return null;
     const payload = (await response.json()) as TwseHolidaySchedule;
     return parseHolidaySchedule(payload, year);

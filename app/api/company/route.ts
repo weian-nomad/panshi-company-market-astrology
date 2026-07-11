@@ -9,12 +9,12 @@ import {
   INDUSTRIES,
   PRICE_SOURCE_PAGE,
   compactDate,
-  fetchPriceBars,
-  findCompany,
   registryReportDate,
 } from "@/lib/company-data";
+import { TPEX_COMPANY_ENDPOINT, TPEX_PRICE_SOURCE_PAGE } from "@/lib/tpex-data";
+import { findCompanyUnified, getPriceBarsUnified } from "@/lib/market-data";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   try {
@@ -33,18 +33,18 @@ export async function GET(request: Request) {
       );
     }
 
-    const row = findCompany(symbol);
+    const row = findCompanyUnified(symbol);
     if (!row) {
       return NextResponse.json(
-        { error: `找不到上市公司 ${symbol}，請確認股票代號。` },
+        { error: `找不到上市櫃公司 ${symbol}，請確認股票代號。` },
         { status: 404 },
       );
     }
     const establishedDate = compactDate(row.establishedDate);
     const listingDate = compactDate(row.listingDate);
-    const bars = await fetchPriceBars(symbol, months, { notBefore: listingDate });
+    const bars = await getPriceBarsUnified(symbol, row.market, months, { notBefore: listingDate });
     if (bars.length === 0) {
-      throw new Error("目前無法從臺灣證券交易所取得任何歷史價格，請稍後再試。");
+      throw new Error("目前無法取得任何歷史價格，請稍後再試。");
     }
     const establishedNatal = buildNatalChart(establishedDate, 12)
       .filter((planet) => planet.body !== "Moon");
@@ -65,7 +65,7 @@ export async function GET(request: Request) {
         registryUpdatedAt: registryReportDate(row.reportDate),
       },
       market: {
-        exchange: "TWSE",
+        exchange: row.market,
         currency: "TWD",
         timeZone: "Asia/Taipei",
         latestDate: latest.date,
@@ -100,8 +100,8 @@ export async function GET(request: Request) {
         },
       },
       sources: {
-        company: COMPANY_ENDPOINT,
-        price: PRICE_SOURCE_PAGE,
+        company: row.market === "TWSE" ? COMPANY_ENDPOINT : TPEX_COMPANY_ENDPOINT,
+        price: row.market === "TWSE" ? PRICE_SOURCE_PAGE : TPEX_PRICE_SOURCE_PAGE,
         fetchedAt: new Date().toISOString(),
       },
     };

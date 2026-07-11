@@ -12,6 +12,8 @@
 - Use public company and market data only unless a separate privacy review is completed.
 - Do not commit secrets, private user data, analytics exports, or runtime logs.
 - Environment variables belong in deployment configuration, never source files.
+- Covers both TWSE (上市) and TPEx (上櫃) listed companies. Daily OHLCV is cached locally in SQLite (`MARKET_DB_PATH`, default `data/panshi-market.db`) via bulk whole-market endpoints — never fetch a full historical range per-symbol at request time. `lib/market-data.ts` reads cache-first and only live-fetches a small, wall-clock-capped recent gap; a deep/empty cache degrades gracefully (`coverage.complete: false`), it must never make the request hang.
+- `scripts/backfill-market-history.ts` (one-time, resumable) and `scripts/update-latest-market-day.ts` (daily incremental) populate the cache; run via `node --import ./scripts/register-path-alias.mjs <script>` since they execute outside the Next.js bundler and need the `@/` alias + JSON import-attribute shims that loader provides.
 
 ## Development
 
