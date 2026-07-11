@@ -20,8 +20,13 @@ import type { PriceBar } from "../lib/astrology.ts";
 import type { Market } from "../lib/market-db.ts";
 
 const YEARS_BACK = 7;
-const REQUEST_DELAY_MS = 400;
 const MAX_RETRIES = 3;
+// Concurrent dates in flight, not just concurrent TWSE+TPEx for the same
+// date. Tuned DOWN from an initial 8: at 8-wide, nearly every request
+// started timing out — TWSE/TPEx almost certainly cap concurrent
+// connections per source IP, so past some small number more parallelism
+// makes things worse, not better.
+const DATE_CONCURRENCY = 3;
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -119,21 +124,31 @@ async function main() {
 
   let processed = 0;
   let tradingDays = 0;
-  for (const date of weekdayDates) {
-    const [twse, tpex] = await Promise.all([
-      ingestOneMarketDay("TWSE", date),
-      ingestOneMarketDay("TPEx", date),
-    ]);
-    if (twse.status === "ok" || tpex.status === "ok") tradingDays += 1;
-    processed += 1;
-    if (twse.status !== "skipped" || tpex.status !== "skipped") await sleep(REQUEST_DELAY_MS);
-    if (processed % 100 === 0 || processed === weekdayDates.length) {
-      const stats = getIngestStats();
-      console.log(
-        `  [${processed}/${weekdayDates.length}] through ${date} | trading-days-so-far=${tradingDays} | cached price rows=${stats.priceRows.n}`,
-      );
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < weekdayDates.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      const date = weekdayDates[index];
+      const [twse, tpex] = await Promise.all([
+        ingestOneMarketDay("TWSE", date),
+        ingestOneMarketDay("TPEx", date),
+      ]);
+      if (twse.status === "ok" || tpex.status === "ok") tradingDays += 1;
+      processed += 1;
+      if (processed % 100 === 0 || processed === weekdayDates.length) {
+        const stats = getIngestStats();
+        console.log(
+          `  [${processed}/${weekdayDates.length}] through ${date} | trading-days-so-far=${tradingDays} | cached price rows=${stats.priceRows.n}`,
+        );
+      }
     }
   }
+
+  await Promise.all(
+    Array.from({ length: Math.min(DATE_CONCURRENCY, weekdayDates.length) }, () => worker()),
+  );
 
   console.log("=== Backfill complete ===");
   console.log(JSON.stringify(getIngestStats(), null, 2));
