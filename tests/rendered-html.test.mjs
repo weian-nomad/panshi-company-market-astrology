@@ -102,6 +102,7 @@ test("removes starter assets and keeps product-specific sources", async () => {
     nextConfig,
     heroInstrument,
     companyExplorer,
+    inquiryWorkbench,
     dockerfile,
     registry,
     socialCard,
@@ -116,6 +117,7 @@ test("removes starter assets and keeps product-specific sources", async () => {
     readFile(new URL("../next.config.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/components/HeroInstrument.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/CompanyExplorer.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/InquiryWorkbench.tsx", import.meta.url), "utf8"),
     readFile(new URL("../Dockerfile", import.meta.url), "utf8"),
     stat(new URL("../data/twse-company-registry.json", import.meta.url)),
     stat(new URL("../public/og.jpg", import.meta.url)),
@@ -144,6 +146,13 @@ test("removes starter assets and keeps product-specific sources", async () => {
   assert.match(heroInstrument, /initial=\{false\}/);
   assert.match(companyExplorer, /`\$\{APP_BASE_PATH\}\/api\/company\?/);
   assert.doesNotMatch(companyExplorer, /fetch\(`\/api\/company\?/);
+  assert.match(companyExplorer, /InquiryWorkbench/);
+  assert.match(inquiryWorkbench, /問一個有日期的問題/);
+  assert.match(inquiryWorkbench, /考慮買進/);
+  assert.match(inquiryWorkbench, /已持有，考慮賣出/);
+  assert.match(inquiryWorkbench, /只想觀察/);
+  assert.match(inquiryWorkbench, /不產生買賣、目標價或部位建議/);
+  assert.match(inquiryWorkbench, /`\$\{APP_BASE_PATH\}\/api\/inquiry\?/);
   assert.match(dockerfile, /\/apps\/panshi\/api\/health/);
   assert.ok(registry.size > 100_000);
   assert.ok(socialCard.size > 100_000);

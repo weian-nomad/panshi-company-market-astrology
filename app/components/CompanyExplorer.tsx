@@ -17,6 +17,7 @@ import {
   useState,
 } from "react";
 import { HeroInstrument } from "./HeroInstrument";
+import { InquiryWorkbench } from "./InquiryWorkbench";
 
 type AnchorKey = "listing" | "established";
 type RangeKey = "3M" | "6M" | "1Y";
@@ -568,11 +569,25 @@ export function CompanyExplorer() {
   const [savedWindows, setSavedWindows] = useState<string[]>(() => readStoredList("panshi:windows"));
   const [shareFeedback, setShareFeedback] = useState("");
   const abortRef = useRef<AbortController | null>(null);
+  const inquiryDirtyRef = useRef(false);
+  const currentSymbolRef = useRef("2330");
+
+  const setInquiryDirty = useCallback((dirty: boolean) => {
+    inquiryDirtyRef.current = dirty;
+  }, []);
 
   const loadCompany = useCallback(async (
     symbol: string,
     options?: { anchor?: AnchorKey; range?: RangeKey },
   ) => {
+    if (
+      inquiryDirtyRef.current &&
+      !window.confirm("這份決策記錄尚未儲存。切換公司會清空目前文字，要繼續嗎？")
+    ) {
+      setQuery(currentSymbolRef.current);
+      return;
+    }
+    inquiryDirtyRef.current = false;
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -591,6 +606,7 @@ export function CompanyExplorer() {
       }
       setPayload(data);
       setQuery(data.company.symbol);
+      currentSymbolRef.current = data.company.symbol;
       const nextAnchor = options?.anchor || "listing";
       setAnchorKey(nextAnchor);
       setRange(options?.range || "1Y");
@@ -635,7 +651,7 @@ export function CompanyExplorer() {
     event.preventDefault();
     const symbol = query.replace(/\D/g, "").slice(0, 6);
     if (symbol.length < 4) {
-      setError("請輸入 4–6 碼上市股票代號。");
+      setError("請輸入 4 至 6 碼上市股票代號。");
       return;
     }
     void loadCompany(symbol);
@@ -656,6 +672,11 @@ export function CompanyExplorer() {
     || null;
 
   const setAnchor = (key: AnchorKey) => {
+    if (
+      inquiryDirtyRef.current &&
+      !window.confirm("這份決策記錄尚未儲存。切換命盤基準會清空目前文字，要繼續嗎？")
+    ) return;
+    inquiryDirtyRef.current = false;
     setAnchorKey(key);
     const nextEvents = payload?.anchors[key].events || [];
     setSelectedEventId(nextEvents.at(-1)?.id || null);
@@ -744,10 +765,10 @@ export function CompanyExplorer() {
         </a>
         <nav aria-label="主要導覽">
           <a href="#workspace">開始對照</a>
+          <a href="#inquiry">開始問盤</a>
           <a href="#methodology">方法與界線</a>
         </nav>
-        <span className="header-note">臺股研究版 <i /> BETA
-        </span>
+        <span className="header-note">臺股資料研究</span>
       </header>
 
       <section className="hero" id="top">
@@ -788,7 +809,6 @@ export function CompanyExplorer() {
                   key={item.symbol}
                   type="button"
                   onClick={() => {
-                    setQuery(item.symbol);
                     void loadCompany(item.symbol);
                   }}
                 >
@@ -799,9 +819,9 @@ export function CompanyExplorer() {
           </form>
 
           <div className="hero-proof">
-            <span><b>01</b>官方公司日期</span>
-            <span><b>02</b>交易日對齊</span>
-            <span><b>03</b>可回看的歷史結果</span>
+            <span><b>日</b>官方公司日期</span>
+            <span><b>盤</b>交易日對齊</span>
+            <span><b>證</b>可回看的歷史結果</span>
           </div>
         </div>
 
@@ -859,7 +879,7 @@ export function CompanyExplorer() {
 
             <div className={`lens-switcher lens-switcher--${lens}`}>
               <div>
-                <span className="section-index">READING LENS</span>
+                <span className="section-index">閱讀方式</span>
                 <h3>同一張盤，用兩種方式看</h3>
                 <p>{lens === "symbolic"
                   ? "先用命盤符號掌握公司的時間質地，再逐層打開資料。"
@@ -877,7 +897,7 @@ export function CompanyExplorer() {
 
             <div className="anchor-strip">
               <div className="anchor-heading">
-                <span className="section-index">01 / ANCHOR</span>
+                <span className="section-index">命盤基準</span>
                 <div><h3>先確定這間公司的「生日」</h3><p>不同基準會得到不同命盤，所以永遠連同來源與精度顯示。</p></div>
               </div>
               <div className="anchor-options" role="group" aria-label="命盤日期基準">
@@ -906,10 +926,20 @@ export function CompanyExplorer() {
               </div>
             </div>
 
+            <InquiryWorkbench
+              key={`${payload.company.symbol}-${anchorKey}`}
+              symbol={payload.company.symbol}
+              anchorKey={anchorKey}
+              anchorLabel={anchor.label}
+              anchorDate={anchor.date}
+              anchorPrecisionLabel={anchor.precisionLabel}
+              onJournalDirtyChange={setInquiryDirty}
+            />
+
             <div className={`dashboard-grid dashboard-grid--${lens}`}>
               <section className="chart-panel" aria-labelledby="price-title">
                 <div className="panel-heading">
-                  <div><span className="section-index">02 / TIMELINE</span><h3 id="price-title">把相位事件標在價格上</h3></div>
+                  <div><span className="section-index">價格時間線</span><h3 id="price-title">把相位事件標在價格上</h3></div>
                   <div className="range-switch" role="group" aria-label="圖表時間範圍">
                     {(["3M", "6M", "1Y"] as RangeKey[]).map((item) => (
                       <button
@@ -937,7 +967,7 @@ export function CompanyExplorer() {
 
               <aside className="natal-panel" aria-labelledby="natal-title">
                 <div className="panel-heading">
-                  <div><span className="section-index">NATAL CHART</span><h3 id="natal-title">公司本命基準</h3></div>
+                  <div><span className="section-index">本命結構</span><h3 id="natal-title">公司本命基準</h3></div>
                   <span className={`confidence-pill confidence-pill--${anchor.precision}`}><i /> {anchor.precisionLabel}</span>
                 </div>
                 {signature ? (
@@ -956,7 +986,7 @@ export function CompanyExplorer() {
 
             <section className="upcoming-section" aria-labelledby="upcoming-title">
               <div className="upcoming-intro">
-                <span className="section-index">03 / NEXT WINDOW</span>
+                <span className="section-index">未來觀察</span>
                 <h3 id="upcoming-title">下一個觀察窗口</h3>
                 <p>這些是未來 120 天內較接近精確的主要相位。只先標記「何時看」，不預設價格會往哪裡走。</p>
               </div>
@@ -983,12 +1013,12 @@ export function CompanyExplorer() {
 
             <section className={`study-section study-section--${lens}`} aria-labelledby="study-title">
               <div className="study-heading">
-                <div><span className="section-index">04 / EVIDENCE LEDGER</span><h3 id="study-title">回到過去，看實際發生什麼</h3><p>每個相位以最接近精確的交易日為代表，報酬從當日收盤往後對照。</p></div>
+                <div><span className="section-index">歷史證據</span><h3 id="study-title">回到過去，看實際發生什麼</h3><p>每個相位以最接近精確的交易日為代表，報酬從當日收盤往後對照。</p></div>
                 <div className="study-summary">
                   <div><span>主要窗口</span><strong>{visibleEvents.length}</strong><small>次</small></div>
                   <div><span>D+5 中位數</span><strong className={(stats.median5 || 0) >= 0 ? "positive" : "negative"}>{formatPercent(stats.median5)}</strong></div>
                   <div><span>D+20 中位數</span><strong className={(stats.median20 || 0) >= 0 ? "positive" : "negative"}>{formatPercent(stats.median20)}</strong></div>
-                  <div><span>D+20 正報酬比例</span><strong>{stats.winRate20 === null ? "—" : `${stats.winRate20.toFixed(0)}%`}</strong><small>{stats.completed20} 筆完成</small></div>
+                  <div><span>D+20 正報酬比例</span><strong>{stats.winRate20 === null ? "尚無" : `${stats.winRate20.toFixed(0)}%`}</strong><small>{stats.completed20} 筆完成</small></div>
                 </div>
               </div>
 
@@ -1018,7 +1048,7 @@ export function CompanyExplorer() {
                 </div>
 
                 <article className={`reading-card reading-card--${selectedEvent?.tone || "focus"}`}>
-                  <div className="reading-card-head"><span>05 / INTERPRETATION</span><em>文化解讀</em></div>
+                  <div className="reading-card-head"><span>相位解讀</span><em>文化解讀</em></div>
                   <div className="reading-symbol" aria-hidden="true">{selectedEvent ? `${selectedEvent.transitGlyph}${selectedEvent.aspectGlyph}${selectedEvent.natalGlyph}` : "···"}</div>
                   <p className="reading-date">{selectedEvent ? `${formatDate(selectedEvent.date)} · 容許度 ${selectedEvent.orb.toFixed(2)}°` : "尚未選擇事件"}</p>
                   <h4>{reading.title}</h4>
@@ -1030,11 +1060,11 @@ export function CompanyExplorer() {
             </section>
 
             <section className="method-section" id="methodology">
-              <div><span className="section-index">METHOD / 06</span><h3>這張圖可以怎麼讀</h3></div>
+              <div><span className="section-index">方法與界線</span><h3>這張圖可以怎麼讀</h3></div>
               <div className="method-grid">
-                <article><span>01</span><h4>先看基準是什麼</h4><p>「首日上市交易」用交易所 09:00 開盤作為推定時間；「公司成立日」只有日期，不延伸到宮位。</p></article>
-                <article><span>02</span><h4>再看事件當天</h4><p>標記以行運火星、木星、土星與本命重要行星的主要相位為主，取最近精確的交易日。</p></article>
-                <article><span>03</span><h4>最後回到實際價格</h4><p>D+5 與 D+20 是從當日原始收盤價向後對照，未還原除權息。樣本小時，它只是線索。</p></article>
+                <article><span>基準</span><h4>先看基準是什麼</h4><p>「首日上市交易」用交易所 09:00 開盤作為推定時間；「公司成立日」只有日期，不延伸到宮位。</p></article>
+                <article><span>事件</span><h4>再看事件當天</h4><p>標記以行運火星、木星、土星與本命重要行星的主要相位為主，取最近精確的交易日。</p></article>
+                <article><span>價格</span><h4>最後回到實際價格</h4><p>D+5 與 D+20 是從當日原始收盤價向後對照，未還原除權息。樣本小時，它只是線索。</p></article>
               </div>
               <div className="source-row">
                 <span>公司資料更新 {formatDate(payload.company.registryUpdatedAt)}</span>
@@ -1054,7 +1084,7 @@ export function CompanyExplorer() {
       <footer>
         <a className="brand brand--footer" href="#top"><span className="brand-mark" aria-hidden="true"><i /></span><span><b>盤勢</b><small>PANSHI</small></span></a>
         <p>把時間當成索引，把價格當成證據。</p>
-        <span>研究版 · 2026</span>
+        <span>臺股資料研究工具</span>
       </footer>
     </main>
   );

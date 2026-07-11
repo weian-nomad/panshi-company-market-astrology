@@ -93,21 +93,21 @@ export function HeroInstrument() {
       initial={false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-      style={reduceMotion ? undefined : { rotateX, rotateY, transformPerspective: 1200 }}
+      style={{ rotateX, rotateY, transformPerspective: 1200 }}
     >
       <motion.div
         className="hero-instrument-depth"
-        style={reduceMotion ? undefined : { y: scrollShift }}
+        style={{ y: scrollShift }}
       >
         <motion.div
           className="hero-instrument-scene"
           data-active-lens={activeLens}
-          animate={reduceMotion ? undefined : active.view}
+          animate={active.view}
           transition={{ type: "spring", stiffness: 90, damping: 24, mass: 0.7 }}
         >
           <motion.div
             className="hero-instrument-media"
-            style={reduceMotion ? undefined : { x: imageX, y: imageY }}
+            style={{ x: imageX, y: imageY }}
           >
             <Image
               src={`${APP_BASE_PATH}/images/panshi-celestial-market.webp`}
@@ -124,7 +124,7 @@ export function HeroInstrument() {
       <motion.div
         className="hero-instrument-sheen"
         aria-hidden="true"
-        style={reduceMotion ? undefined : { background: sheen }}
+        style={{ background: sheen }}
       />
       <div className="hero-instrument-scrim" aria-hidden="true" />
 
@@ -136,7 +136,7 @@ export function HeroInstrument() {
               type="button"
               aria-pressed={activeLens === lens.id}
               onClick={() => setActiveLens(lens.id)}
-              whileTap={reduceMotion ? undefined : { scale: 0.97 }}
+              whileTap={{ scale: 0.97 }}
             >
               {lens.label}
             </motion.button>
@@ -147,9 +147,9 @@ export function HeroInstrument() {
           <motion.div
             className="hero-orbit-note"
             key={active.id}
-            initial={reduceMotion ? false : { opacity: 0, y: 7 }}
+            initial={{ opacity: 0, y: 7 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={reduceMotion ? undefined : { opacity: 0, y: -5 }}
+            exit={{ opacity: 0, y: -5 }}
             transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
             aria-live="polite"
           >

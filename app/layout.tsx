@@ -29,7 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
       template: "%s · 盤勢",
     },
     description:
-      "用公司日期建立命盤基準，將主要行運對齊臺股歷史收盤價。歷史重合不等於因果，不構成投資建議。",
+      "指定公司與日期，對照命盤象徵、同組態歷史與公司事件。歷史重合不等於因果，不構成投資建議。",
     applicationName: "盤勢",
     creator: "盤勢",
     alternates: {
@@ -41,7 +41,7 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: "盤勢",
       url: origin,
       title: "盤勢 · 把公司的時間，放回股價裡看",
-      description: "企業命盤 × 股價時間線的文化研究與資料探索工具。",
+      description: "問一個有日期的問題，拆開象徵、歷史證據、公司事件與資料界線。",
       images: [{ url: imageUrl, width: 1672, height: 941, alt: "盤勢：企業命盤與股價時間線" }],
     },
     twitter: {

@@ -1,4 +1,5 @@
 import { Body, Ecliptic, GeoVector } from "astronomy-engine";
+import { startsNewTransitEpisode } from "@/lib/transit-episodes";
 
 export type PriceBar = {
   date: string;
@@ -44,6 +45,30 @@ export type UpcomingTransitEvent = Omit<
   TransitEvent,
   "close" | "return5" | "return20"
 >;
+
+export type TransitConfiguration = {
+  id: string;
+  signature: string;
+  date: string;
+  transitBody: string;
+  transitBodyZh: string;
+  transitGlyph: string;
+  natalBody: string;
+  natalBodyZh: string;
+  natalGlyph: string;
+  aspect: "conjunction" | "square" | "trine" | "opposition";
+  aspectZh: string;
+  aspectGlyph: string;
+  tone: "flow" | "focus" | "tension";
+  orb: number;
+  transitLongitude: number;
+  natalLongitude: number;
+};
+
+export type HistoricalTransitEpisode = TransitConfiguration & {
+  barIndex: number;
+  close: number;
+};
 
 const PLANETS = [
   { body: Body.Sun, key: "Sun", zh: "太陽", glyph: "☉" },
@@ -286,4 +311,89 @@ export function buildUpcomingTransitEvents(
     .sort((a, b) => a.timestamp - b.timestamp)
     .slice(0, 5)
     .map(omitCandidateMetadata);
+}
+
+function transitConfigurationsForDate(
+  natal: PlanetPosition[],
+  dateText: string,
+): TransitConfiguration[] {
+  const session = localTaipeiMoment(dateText, 9);
+  const targets = natal.filter((planet) => NATAL_TARGETS.has(planet.body));
+  const configurations: TransitConfiguration[] = [];
+
+  for (const transit of TRANSIT_BODIES) {
+    const transitLongitude = longitude(transit.body, session);
+    for (const target of targets) {
+      const gap = separation(transitLongitude, target.longitude);
+      const nearest = nearestAspect(gap);
+      const signature = `${transit.key}-${nearest.aspect.key}-${target.body}`;
+      configurations.push({
+        id: `${dateText}-${signature}`,
+        signature,
+        date: dateText,
+        transitBody: transit.key,
+        transitBodyZh: transit.zh,
+        transitGlyph: transit.glyph,
+        natalBody: target.body,
+        natalBodyZh: target.bodyZh,
+        natalGlyph: target.glyph,
+        aspect: nearest.aspect.key,
+        aspectZh: nearest.aspect.zh,
+        aspectGlyph: nearest.aspect.glyph,
+        tone: nearest.aspect.tone,
+        orb: Number(nearest.orb.toFixed(2)),
+        transitLongitude: Number(transitLongitude.toFixed(2)),
+        natalLongitude: target.longitude,
+      });
+    }
+  }
+
+  return configurations.sort((a, b) => a.orb - b.orb);
+}
+
+export function buildTransitSnapshot(
+  natal: PlanetPosition[],
+  dateText: string,
+  activeOrb = 3,
+): TransitConfiguration[] {
+  return transitConfigurationsForDate(natal, dateText)
+    .filter((configuration) => configuration.orb <= activeOrb);
+}
+
+export function buildHistoricalTransitEpisodes(
+  natal: PlanetPosition[],
+  bars: PriceBar[],
+  peakOrb = 1.25,
+): HistoricalTransitEpisode[] {
+  const bySignature = new Map<string, HistoricalTransitEpisode[]>();
+
+  bars.forEach((bar, barIndex) => {
+    for (const configuration of transitConfigurationsForDate(natal, bar.date)) {
+      if (configuration.orb > peakOrb) continue;
+      const episode = { ...configuration, barIndex, close: bar.close };
+      bySignature.set(configuration.signature, [
+        ...(bySignature.get(configuration.signature) || []),
+        episode,
+      ]);
+    }
+  });
+
+  const selected: HistoricalTransitEpisode[] = [];
+  for (const episodes of bySignature.values()) {
+    let run: HistoricalTransitEpisode[] = [];
+    const flush = () => {
+      if (!run.length) return;
+      selected.push([...run].sort((a, b) => a.orb - b.orb)[0]);
+      run = [];
+    };
+
+    for (const episode of episodes.sort((a, b) => a.barIndex - b.barIndex)) {
+      const previous = run.at(-1);
+      if (previous && startsNewTransitEpisode(previous, episode)) flush();
+      run.push(episode);
+    }
+    flush();
+  }
+
+  return selected.sort((a, b) => a.date.localeCompare(b.date));
 }
