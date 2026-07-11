@@ -15,7 +15,7 @@ docker build -t panshi .
 啟動後確認：
 
 ```bash
-curl --fail http://127.0.0.1:3000/apps/panshi/api/health
+curl --fail http://127.0.0.1:3000/api/health
 ```
 
 ## Runtime configuration
@@ -29,17 +29,17 @@ curl --fail http://127.0.0.1:3000/apps/panshi/api/health
 
 ## Production route
 
-正式入口為 <https://nomadsustaintech.com/apps/panshi/>。發布流程必須：
+正式入口為 <https://panshi.nomadsustaintech.com/>（自己的子網域、自己的主機，不是掛在主站底下的路徑）。發布流程必須：
 
 1. 從乾淨來源建立新 image。
-2. 用 `/apps/panshi/api/health` 驗證候選容器。
+2. 用 `/api/health` 驗證候選容器。
 3. 成功後才切換流量。
 4. 保留前一個 image，健康檢查失敗時回滾。
 
-應用在 build time 設定 `basePath: /apps/panshi`。入口代理必須保留這段路徑原樣轉送；不要剝除前綴，也不要改寫 HTML、CSS 或 JavaScript 回應內容。
+應用在 domain root 運行（`basePath` 為空）。
 
 切換流量後，再用真實瀏覽器確認 hydration、資料載入、圖片與互動：
 
 ```bash
-PANSHI_URL=https://nomadsustaintech.com/apps/panshi/ npm run test:browser
+PANSHI_URL=https://panshi.nomadsustaintech.com/ npm run test:browser
 ```

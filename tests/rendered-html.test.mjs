@@ -42,7 +42,7 @@ async function render() {
   });
 
   const origin = `http://127.0.0.1:${port}`;
-  const url = `${origin}/apps/panshi/`;
+  const url = `${origin}/`;
   for (let attempt = 0; attempt < 50; attempt += 1) {
     try {
       const response = await fetch(url);
@@ -58,7 +58,7 @@ async function render() {
   throw new Error("Standalone Next.js server did not become ready");
 }
 
-test("server-renders and serves the complete app under its production base path", async () => {
+test("server-renders and serves the complete app at the domain root", async () => {
   const { child, origin, response } = await render();
   try {
     assert.equal(response.status, 200);
@@ -72,12 +72,12 @@ test("server-renders and serves the complete app under its production base path"
     assert.match(html, /日期是一級資料/);
     assert.match(html, /不構成投資、法律或財務建議/);
     assert.match(html, /property="og:image"/);
-    assert.match(html, /\/apps\/panshi\/og\.jpg/);
-    assert.match(html, /\/apps\/panshi\/images\/panshi-celestial-market\.webp/);
-    assert.doesNotMatch(html, /(?:src|href)="\/_next\//);
+    assert.match(html, /\/og\.jpg/);
+    assert.match(html, /\/images\/panshi-celestial-market\.webp/);
+    assert.match(html, /(?:src|href)="\/_next\//);
     assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 
-    const staticAssets = [...html.matchAll(/(?:src|href)="(\/apps\/panshi\/_next\/static\/[^"]+)"/g)]
+    const staticAssets = [...html.matchAll(/(?:src|href)="(\/_next\/static\/[^"]+)"/g)]
       .map((match) => match[1]);
     assert.ok(staticAssets.length >= 3);
     for (const assetPath of new Set(staticAssets)) {
@@ -85,7 +85,7 @@ test("server-renders and serves the complete app under its production base path"
       assert.equal(asset.status, 200, assetPath);
     }
 
-    const health = await fetch(`${origin}/apps/panshi/api/health`);
+    const health = await fetch(`${origin}/api/health`);
     assert.equal(health.status, 200);
     assert.equal((await health.json()).ok, true);
   } finally {
@@ -153,7 +153,7 @@ test("removes starter assets and keeps product-specific sources", async () => {
   assert.match(inquiryWorkbench, /只想觀察/);
   assert.match(inquiryWorkbench, /不產生買賣、目標價或部位建議/);
   assert.match(inquiryWorkbench, /`\$\{APP_BASE_PATH\}\/api\/inquiry\?/);
-  assert.match(dockerfile, /\/apps\/panshi\/api\/health/);
+  assert.match(dockerfile, /127\.0\.0\.1:3000\/api\/health/);
   assert.ok(registry.size > 100_000);
   assert.ok(socialCard.size > 100_000);
   assert.ok(heroImage.size > 200_000 && heroImage.size < 500_000);

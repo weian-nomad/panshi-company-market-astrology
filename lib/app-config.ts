@@ -1,1 +1,1 @@
-export const APP_BASE_PATH = "/apps/panshi";
+export const APP_BASE_PATH = "";

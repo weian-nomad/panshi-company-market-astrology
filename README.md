@@ -52,24 +52,24 @@ npm test
 完整瀏覽器旅程檢查：
 
 ```bash
-PANSHI_URL=http://localhost:3000/apps/panshi/ npm run test:browser
+PANSHI_URL=http://localhost:3000/ npm run test:browser
 ```
 
 容器化執行：
 
 ```bash
 docker build -t panshi .
-docker run --rm -p 3000:3000 -e SITE_URL=http://localhost:3000/apps/panshi panshi
+docker run --rm -p 3000:3000 -e SITE_URL=http://localhost:3000 panshi
 ```
 
-本機入口：<http://localhost:3000/apps/panshi/>
+本機入口：<http://localhost:3000/>
 
-健康檢查：`GET /apps/panshi/api/health`。
+健康檢查：`GET /api/health`。
 
 ## 公開版本
 
-- Nomad SustainTech：<https://nomadsustaintech.com/apps/panshi/>
-- 正式環境以非特權、非 root Docker 容器執行。
+- Nomad SustainTech：<https://panshi.nomadsustaintech.com/>（自己的子網域）
+- 正式環境以非特權、非 root Docker 容器執行，跑在獨立主機（v100）。
 - `SITE_URL` 用來產生 canonical 與社群分享網址；它不是秘密。
 
 ## 產品研究

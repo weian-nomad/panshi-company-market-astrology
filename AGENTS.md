@@ -31,6 +31,6 @@
 
 ## Deployment
 
-- Public route: `https://nomadsustaintech.com/apps/panshi/`.
+- Public route: `https://panshi.nomadsustaintech.com/` (own subdomain, own host — not a path under the main site).
 - Deploy with a health check and preserve the previous image for rollback.
 - Do not place infrastructure credentials, private hostnames, or server paths in this public repository.
