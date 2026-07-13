@@ -38,5 +38,11 @@ jobs:
       - name: Type-check
         run: npx tsc --noEmit --incremental false
 
+      - name: Test Studio engine
+        run: npm run test:studio
+
+      - name: Validate Remotion compositions
+        run: npm run studio:compositions
+
       - name: Test
         run: npm test

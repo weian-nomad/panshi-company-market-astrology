@@ -1,0 +1,13 @@
+[Unit]
+Description=Generate one Nomad Panshi Studio video after each weekday close, retrying until data is ready
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 16:20,35,50:00 Asia/Taipei
+OnCalendar=Mon..Fri *-*-* 17..20:05,20,35,50:00 Asia/Taipei
+Persistent=true
+AccuracySec=1min
+RandomizedDelaySec=2min
+Unit=panshi-studio-generate.service
+
+[Install]
+WantedBy=timers.target

@@ -114,6 +114,92 @@ type TwseDailyTable = {
   data?: string[][];
 };
 
+export type TwseDailyPayload = {
+  stat?: string;
+  date?: string | number;
+  tables?: TwseDailyTable[];
+};
+
+const TWSE_MIN_RAW_DAILY_ROWS = 500;
+const TWSE_MIN_PARSED_DAILY_ROWS = 400;
+const TWSE_MIN_PARSE_RATIO = 0.5;
+const TWSE_DAILY_COLUMNS = [
+  [0, "證券代號"],
+  [2, "成交股數"],
+  [5, "開盤價"],
+  [6, "最高價"],
+  [7, "最低價"],
+  [8, "收盤價"],
+] as const;
+
+/** Parse and validate the official TWSE whole-market response. */
+export function parseTwseDailyQuotesPayload(
+  isoDate: string,
+  payload: TwseDailyPayload,
+): Array<{ symbol: string; bar: PriceBar }> {
+  const compact = isoDate.replace(/-/g, "");
+  const stat = String(payload.stat || "").trim();
+
+  if (stat.toUpperCase() !== "OK") {
+    const hasRows = payload.tables?.some((table) => Array.isArray(table.data) && table.data.length > 0);
+    if (/\u6c92\u6709\u7b26\u5408\u689d\u4ef6\u7684\u8cc7\u6599/.test(stat) && !hasRows) return [];
+    throw new Error(`TWSE ${isoDate} daily quote response status is invalid: ${stat || "missing"}`);
+  }
+
+  const responseDate = String(payload.date ?? "").replace(/\D/g, "");
+  if (responseDate !== compact) {
+    throw new Error(`TWSE daily quote date mismatch: requested ${compact}, received ${responseDate || "missing"}`);
+  }
+  if (!Array.isArray(payload.tables)) {
+    throw new Error(`TWSE ${isoDate} daily quote tables are missing`);
+  }
+  const table = payload.tables.find((item) => (item.title || "").includes("每日收盤行情"));
+  if (!table || !Array.isArray(table.data)) {
+    throw new Error(`TWSE ${isoDate} daily closing table is missing`);
+  }
+  if (!TWSE_DAILY_COLUMNS.every(([index, label]) => table.fields?.[index]?.trim() === label)) {
+    throw new Error(`TWSE ${isoDate} daily quote columns are invalid`);
+  }
+  if (table.data.length < TWSE_MIN_RAW_DAILY_ROWS) {
+    throw new Error(
+      `TWSE ${isoDate} daily quote response is incomplete: ${table.data.length} raw rows`,
+    );
+  }
+
+  const results: Array<{ symbol: string; bar: PriceBar }> = [];
+  for (const row of table.data) {
+    if (!Array.isArray(row) || row.length < 9) continue;
+    const symbol = String(row[0] || "").trim();
+    if (!/^\d{4}[A-Z]?$/.test(symbol)) continue;
+    const close = numberValue(row[8]);
+    if (close <= 0) continue;
+    results.push({
+      symbol,
+      bar: {
+        date: isoDate,
+        volume: numberValue(row[2]),
+        open: numberValue(row[5]),
+        high: numberValue(row[6]),
+        low: numberValue(row[7]),
+        close,
+      },
+    });
+  }
+
+  if (
+    results.length < TWSE_MIN_PARSED_DAILY_ROWS
+    || results.length / table.data.length < TWSE_MIN_PARSE_RATIO
+  ) {
+    throw new Error(
+      `TWSE ${isoDate} daily quote response is incomplete: ${results.length}/${table.data.length} usable rows`,
+    );
+  }
+  if (new Set(results.map((row) => row.symbol)).size !== results.length) {
+    throw new Error(`TWSE ${isoDate} daily quote response contains duplicate symbols`);
+  }
+  return results;
+}
+
 /**
  * Bulk daily OHLCV for ALL TWSE securities on one trading day (one request
  * instead of one per symbol). Returns an empty array for non-trading days
@@ -135,30 +221,8 @@ export async function fetchTwseDailyQuotes(
     DAILY_BULK_TIMEOUT_MS,
   );
   if (!response.ok) throw new Error(`TWSE 股價 HTTP ${response.status}`);
-  const payload = (await response.json()) as { tables?: TwseDailyTable[] };
-  const table = payload.tables?.find((item) => (item.title || "").includes("每日收盤行情"));
-  if (!table || !Array.isArray(table.data)) return [];
-
-  const results: Array<{ symbol: string; bar: PriceBar }> = [];
-  for (const row of table.data) {
-    if (!Array.isArray(row) || row.length < 9) continue;
-    const symbol = String(row[0] || "").trim();
-    if (!/^\d{4}[A-Z]?$/.test(symbol)) continue;
-    const close = numberValue(row[8]);
-    if (close <= 0) continue;
-    results.push({
-      symbol,
-      bar: {
-        date: isoDate,
-        volume: numberValue(row[2]),
-        open: numberValue(row[5]),
-        high: numberValue(row[6]),
-        low: numberValue(row[7]),
-        close,
-      },
-    });
-  }
-  return results;
+  const payload = (await response.json()) as TwseDailyPayload;
+  return parseTwseDailyQuotesPayload(isoDate, payload);
 }
 
 type TwseCompanyRaw = {

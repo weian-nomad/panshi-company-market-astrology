@@ -16,6 +16,11 @@ import {
 } from "../lib/market-db.ts";
 import { fetchTwseDailyQuotes, fetchTwseCompanyRegistryLive } from "../lib/company-data.ts";
 import { fetchTpexDailyQuotes, fetchTpexCompanyRegistry } from "../lib/tpex-data.ts";
+import {
+  assertRegistryQuoteCoverage,
+  currentMarketDate,
+  emptyIngestStatus,
+} from "../lib/market-ingest-policy.ts";
 import type { PriceBar } from "../lib/astrology.ts";
 import type { Market } from "../lib/market-db.ts";
 
@@ -67,17 +72,31 @@ async function withRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
   throw lastErr;
 }
 
-async function ingestOneMarketDay(market: Market, date: string) {
+async function ingestOneMarketDay(
+  market: Market,
+  date: string,
+  todayIso: string,
+  expectedCompanyCount: number,
+) {
   if (isIngestDayDone(market, date)) return { status: "skipped" as const, rows: 0 };
   try {
     const rows = await withRetry(
-      () => (market === "TWSE" ? fetchTwseDailyQuotes(date) : fetchTpexDailyQuotes(date)),
+      async () => {
+        const result = market === "TWSE"
+          ? await fetchTwseDailyQuotes(date)
+          : await fetchTpexDailyQuotes(date);
+        if (result.length === 0 && emptyIngestStatus(date, todayIso) === "error") {
+          throw new Error(`${market} ${date} daily quotes are not available yet`);
+        }
+        return result;
+      },
       `${market} ${date}`,
     );
     if (rows.length === 0) {
       markIngestDay(market, date, "no-trading", 0);
       return { status: "no-trading" as const, rows: 0 };
     }
+    assertRegistryQuoteCoverage(market, rows.length, expectedCompanyCount);
     const bySymbol = new Map<string, PriceBar[]>();
     for (const { symbol, bar } of rows) {
       if (!bySymbol.has(symbol)) bySymbol.set(symbol, []);
@@ -104,9 +123,8 @@ async function main() {
   upsertCompanies(tpexCompanies);
   console.log(`  TWSE: ${twseCompanies.length} companies, TPEx: ${tpexCompanies.length} companies`);
 
-  const today = new Date();
-  const endIso = today.toISOString().slice(0, 10);
-  const startDate = new Date(today);
+  const endIso = currentMarketDate();
+  const startDate = new Date(`${endIso}T00:00:00Z`);
   startDate.setUTCFullYear(startDate.getUTCFullYear() - YEARS_BACK);
   const startIso = startDate.toISOString().slice(0, 10);
 
@@ -125,6 +143,11 @@ async function main() {
   let processed = 0;
   let tradingDays = 0;
   let nextIndex = 0;
+  const failures: Array<{ market: Market; date: string }> = [];
+  const expectedCompanyCounts: Record<Market, number> = {
+    TWSE: twseCompanies.length,
+    TPEx: tpexCompanies.length,
+  };
 
   async function worker() {
     while (nextIndex < weekdayDates.length) {
@@ -132,9 +155,11 @@ async function main() {
       nextIndex += 1;
       const date = weekdayDates[index];
       const [twse, tpex] = await Promise.all([
-        ingestOneMarketDay("TWSE", date),
-        ingestOneMarketDay("TPEx", date),
+        ingestOneMarketDay("TWSE", date, endIso, expectedCompanyCounts.TWSE),
+        ingestOneMarketDay("TPEx", date, endIso, expectedCompanyCounts.TPEx),
       ]);
+      if (twse.status === "error") failures.push({ market: "TWSE", date });
+      if (tpex.status === "error") failures.push({ market: "TPEx", date });
       if (twse.status === "ok" || tpex.status === "ok") tradingDays += 1;
       processed += 1;
       if (processed % 100 === 0 || processed === weekdayDates.length) {
@@ -150,8 +175,14 @@ async function main() {
     Array.from({ length: Math.min(DATE_CONCURRENCY, weekdayDates.length) }, () => worker()),
   );
 
+  const stats = getIngestStats();
+  console.log(JSON.stringify(stats, null, 2));
+  if (failures.length) {
+    throw new Error(
+      `Backfill incomplete: ${failures.length} market-date ingestion(s) failed; rerun to resume`,
+    );
+  }
   console.log("=== Backfill complete ===");
-  console.log(JSON.stringify(getIngestStats(), null, 2));
 }
 
 main().catch((err) => {

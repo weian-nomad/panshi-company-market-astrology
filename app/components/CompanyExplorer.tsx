@@ -7,6 +7,7 @@ import type {
   UpcomingTransitEvent,
 } from "@/lib/astrology";
 import { APP_BASE_PATH } from "@/lib/app-config";
+import Link from "next/link";
 import {
   FormEvent,
   PointerEvent as ReactPointerEvent,
@@ -1084,7 +1085,11 @@ export function CompanyExplorer() {
       <footer>
         <a className="brand brand--footer" href="#top"><span className="brand-mark" aria-hidden="true"><i /></span><span><b>盤勢</b><small>PANSHI</small></span></a>
         <p>把時間當成索引，把價格當成證據。</p>
-        <span>臺股資料研究工具</span>
+        <nav className="footer-meta" aria-label="網站資訊">
+          <span>臺股資料研究工具</span>
+          <Link href={`${APP_BASE_PATH}/privacy`}>隱私與資料</Link>
+          <Link href={`${APP_BASE_PATH}/terms`}>使用條款</Link>
+        </nav>
       </footer>
     </main>
   );

@@ -1,0 +1,45 @@
+FROM node:24-bookworm-slim
+
+WORKDIR /app
+
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    MARKET_DB_PATH=/app/runtime-data/panshi-market.db \
+    STUDIO_DB_PATH=/app/runtime-data/panshi-studio.db \
+    STUDIO_OUTPUT_ROOT=/app/var/panshi-studio \
+    FFMPEG_PATH=/usr/bin/ffmpeg \
+    FFPROBE_PATH=/usr/bin/ffprobe \
+    REMOTION_BROWSER_EXECUTABLE=/usr/bin/chromium \
+    REMOTION_CONCURRENCY=1 \
+    HOME=/home/studio
+
+RUN apt-get update \
+  && apt-get install --yes --no-install-recommends \
+    ca-certificates \
+    chromium \
+    ffmpeg \
+    fontconfig \
+    fonts-noto-cjk \
+    librsvg2-2 \
+  && rm -rf /var/lib/apt/lists/* \
+  && fc-cache --force
+
+COPY package.json package-lock.json ./
+RUN npm ci --include=dev \
+  && npm cache clean --force
+
+COPY tsconfig.json ./
+COPY data/twse-company-registry.json ./data/twse-company-registry.json
+COPY lib ./lib
+COPY public ./public
+COPY scripts ./scripts
+COPY studio ./studio
+
+RUN groupadd --system --gid 1001 studio \
+  && useradd --system --uid 1001 --gid studio --home-dir /home/studio studio \
+  && mkdir -p /home/studio /app/runtime-data /app/var/panshi-studio \
+  && chown -R studio:studio /home/studio /app/runtime-data /app/var/panshi-studio
+
+USER studio
+
+CMD ["npm", "exec", "--", "tsx", "studio/commands/generate-daily.ts"]
