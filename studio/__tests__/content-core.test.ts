@@ -264,6 +264,54 @@ test("完整內容通過當日、涵蓋、差異化與事實驗證", () => {
   assert.equal(result.valid, true);
 });
 
+test("驗證器接受各欄位實際呈現精度，仍拒絕沒有事實來源的近似值", () => {
+  const selection = structuredClone(validPackage().selection);
+  const dailyChanges = [-16.11, 2.63, 9.25, 9.92, 9.85];
+  selection.items.forEach((item, index) => {
+    item.facts.session.dailyChangePercent = dailyChanges[index];
+  });
+
+  const first = selection.items[0];
+  first.facts.shortName = "M31科技";
+  first.facts.session.close = 123.4567;
+  first.facts.transits[0].orb = 0.364;
+  if (!first.facts.study) throw new Error("測試資料缺少事件研究");
+  first.facts.study.statistics.medianReturn = 1.54;
+  first.facts.study.statistics.q1Return = -4.24;
+  first.facts.study.statistics.q3Return = 6.26;
+  first.facts.study.statistics.medianAdverseMove = -3.46;
+  first.facts.study.statistics.worstAdverseMove = -8.04;
+
+  const volumeItem = selection.items.find((item) => item.category === "volume-anomaly");
+  assert.ok(volumeItem);
+  volumeItem.facts.session.volumeRatio20SessionMedian = 4.26;
+
+  const content = buildDailyContentPackage(selection);
+  const visibleCopy = content.script.segments
+    .map((segment) => [segment.marketLine, segment.configurationLine, segment.historyLine].join("\n"))
+    .join("\n");
+  assert.match(visibleCopy, /-16\.1%/);
+  assert.match(visibleCopy, /\+2\.6%/);
+  assert.match(visibleCopy, /\+9\.3%/);
+  assert.match(visibleCopy, /\+9\.9%/);
+  assert.match(visibleCopy, /\+9\.8%/);
+  assert.match(visibleCopy, /M31科技/);
+  assert.match(visibleCopy, /收盤 123\.46 元/);
+  assert.match(visibleCopy, /成交量是近 20 個交易日中位量的 4\.3 倍/);
+  assert.match(visibleCopy, /容許度 0\.36°/);
+  assert.match(visibleCopy, /中位數 \+1\.5%，四分位區間 -4\.2% 至 \+6\.3%/);
+
+  const valid = validateDailyPackage(content, { expectedDate: DATE });
+  assert.deepEqual(valid.errors, []);
+
+  const unsupported = structuredClone(content);
+  unsupported.script.hook += " 未經資料支持的近似值 +2.7%。";
+  const rejected = validateDailyPackage(unsupported, { expectedDate: DATE });
+  assert.ok(rejected.errors.some((error) => (
+    error.code === "unsupported-number" && error.message.includes("2.7")
+  )));
+});
+
 test("Remotion 七場口播、音軌與字幕使用同一份時間軸", () => {
   const content = validPackage();
   const scenes = buildRenderScenes(content);

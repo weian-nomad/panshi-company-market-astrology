@@ -17,6 +17,7 @@ import {
 } from "@/studio/types";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const CLAIM_NUMBER = /[+-]?\d+(?:\.\d+)?/g;
 const BANNED_ACTIONABLE_TERMS = [
   "必買",
   "必賣",
@@ -121,6 +122,10 @@ function addDateNumbers(allowed: Set<string>, value: string | null) {
   value.split("-").forEach((part) => allowed.add(String(Number(part))));
 }
 
+function addEmbeddedNumbers(allowed: Set<string>, value: string) {
+  (value.match(CLAIM_NUMBER) ?? []).forEach((part) => allowed.add(canonicalNumber(part)));
+}
+
 function canonicalNumber(value: number | string) {
   const numeric = typeof value === "number" ? value : Number(value.replace(/,/g, ""));
   return Number.isFinite(numeric) ? String(numeric) : "";
@@ -131,6 +136,20 @@ function addNumber(allowed: Set<string>, value: number | null | undefined) {
   allowed.add(canonicalNumber(value));
 }
 
+/**
+ * Add only the representation a script formatter can actually emit for a
+ * specific fact. This keeps the claim check fail-closed while allowing an
+ * evidenced value such as 9.25% to be presented as +9.3%.
+ */
+function addPresentedNumber(
+  allowed: Set<string>,
+  value: number | null | undefined,
+  fractionDigits: number,
+) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return;
+  allowed.add(canonicalNumber(value.toFixed(fractionDigits)));
+}
+
 function supportedNumbers(content: DailyContentPackage) {
   const allowed = new Set<string>();
   [1, 3, 5, 20].forEach((value) => addNumber(allowed, value));
@@ -138,16 +157,21 @@ function supportedNumbers(content: DailyContentPackage) {
 
   for (const item of content.selection.items) {
     const facts = item.facts;
-    (facts.symbol.match(/\d+/g) ?? []).forEach((part) => addNumber(allowed, Number(part)));
+    addEmbeddedNumbers(allowed, facts.symbol);
+    addEmbeddedNumbers(allowed, facts.shortName);
     addDateNumbers(allowed, facts.date);
     addDateNumbers(allowed, facts.session.date);
     addNumber(allowed, facts.session.close);
+    addPresentedNumber(allowed, facts.session.close, 2);
     addNumber(allowed, facts.session.dailyChangePercent);
+    addPresentedNumber(allowed, facts.session.dailyChangePercent, 1);
     addNumber(allowed, facts.session.volumeRatio20SessionMedian);
+    addPresentedNumber(allowed, facts.session.volumeRatio20SessionMedian, 1);
     addNumber(allowed, facts.transits.length);
     facts.transits.forEach((transit) => {
       addDateNumbers(allowed, transit.date);
       addNumber(allowed, transit.orb);
+      addPresentedNumber(allowed, transit.orb, 2);
     });
 
     const coverage = facts.coverage;
@@ -163,6 +187,13 @@ function supportedNumbers(content: DailyContentPackage) {
     addNumber(allowed, study.horizon);
     addNumber(allowed, study.minimumDescriptiveSample);
     Object.values(study.statistics).forEach((value) => addNumber(allowed, value));
+    [
+      study.statistics.medianReturn,
+      study.statistics.q1Return,
+      study.statistics.q3Return,
+      study.statistics.medianAdverseMove,
+      study.statistics.worstAdverseMove,
+    ].forEach((value) => addPresentedNumber(allowed, value, 1));
     if (study.statistics.q1Return !== null && study.statistics.q3Return !== null) {
       addNumber(allowed, Number((study.statistics.q3Return - study.statistics.q1Return).toFixed(1)));
     }
@@ -184,7 +215,7 @@ function validateNumericClaims(content: DailyContentPackage, errors: ContentVali
   const copy = visibleScriptStrings(content)
     .join("\n")
     .replace(/https?:\/\/\S+/g, "");
-  const tokens = copy.match(/[+-]?\d+(?:\.\d+)?/g) ?? [];
+  const tokens = copy.match(CLAIM_NUMBER) ?? [];
   const unsupported = [...new Set(tokens.filter((token) => !allowed.has(canonicalNumber(token))))];
   if (unsupported.length) {
     errors.push(issue(
