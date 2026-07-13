@@ -200,6 +200,10 @@ export default async function StudioPage({
                 </div>
               </div>
 
+              <a className={styles.mobileJump} href="#youtube-publishing-settings">
+                跳到 YouTube 發布設定
+              </a>
+
               <div className={styles.reviewGrid}>
                 <section className={styles.preview} aria-labelledby="preview-title">
                   <h3 id="preview-title">成片預覽</h3>
@@ -276,13 +280,26 @@ export default async function StudioPage({
                 </div>
               </section>
 
-              <section className={styles.metadataSection} aria-labelledby="metadata-title">
+              <section
+                id="youtube-publishing-settings"
+                className={styles.metadataSection}
+                aria-labelledby="metadata-title"
+              >
                 <div className={styles.sectionHeading}>
                   <h3 id="metadata-title">YouTube 發布設定</h3>
-                  <p>可選擇調整；儲存不是逐片核准，預設仍由 worker 自動接手。</p>
+                  <p>
+                    {canEditPublishingControls
+                      ? "需要時可在上傳前調整；不操作也會照排程自動發布。儲存不是逐片核准。"
+                      : "這期已由發布工作接手；下列為當時送出的設定，現在僅供檢視。"}
+                  </p>
                 </div>
                 <form action="/api/studio/settings" method="post" className={styles.metadataForm}>
                   <input type="hidden" name="trade_date" value={selected.tradeDate} />
+                  {!canEditPublishingControls && (
+                    <p className={styles.disabledAction} role="status">
+                      發布設定已鎖定，不會再接受變更。
+                    </p>
+                  )}
                   <label>
                     目標頻道
                     <input readOnly value={config.channelId || "尚未連結 YouTube 頻道"} />
@@ -321,10 +338,8 @@ export default async function StudioPage({
                       <option value="private">私人</option>
                     </select>
                   </label>
-                  {canEditPublishingControls ? (
+                  {canEditPublishingControls && (
                     <button type="submit">儲存發布設定</button>
-                  ) : (
-                    <p className={styles.disabledAction}>這期已進入發布流程，設定已鎖定。</p>
                   )}
                 </form>
               </section>

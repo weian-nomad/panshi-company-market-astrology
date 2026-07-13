@@ -131,6 +131,10 @@
   padding-bottom: 22px;
 }
 
+.mobileJump {
+  display: none;
+}
+
 .date {
   margin-bottom: 6px;
   color: #a5aaa3;
@@ -360,6 +364,17 @@
   min-height: 46px;
 }
 
+.metadataForm input[readonly],
+.metadataForm textarea[readonly],
+.metadataForm select:disabled {
+  border-color: rgba(244, 240, 230, 0.16);
+  background: #171a18;
+  color: #aaa9a4;
+  cursor: not-allowed;
+  opacity: 1;
+  -webkit-text-fill-color: #aaa9a4;
+}
+
 .metadataForm button {
   min-height: 46px;
   padding: 10px 16px;
@@ -468,6 +483,14 @@
   color: #aeb0aa;
 }
 
+.disabledAction {
+  padding: 11px 13px;
+  margin: 0;
+  border-left: 3px solid #8a806b;
+  background: rgba(187, 155, 96, 0.08);
+  font-size: 13px;
+}
+
 .auditSection ol {
   padding: 0;
   margin: 14px 0 0;
@@ -541,6 +564,24 @@
     align-items: start;
     flex-direction: column;
     gap: 8px;
+  }
+
+  .mobileJump {
+    display: inline-flex;
+    width: fit-content;
+    min-height: 44px;
+    align-items: center;
+    padding: 9px 12px;
+    margin: 0 0 18px;
+    border: 1px solid rgba(187, 155, 96, 0.58);
+    border-radius: 4px;
+    color: #dfcda6;
+    font-size: 14px;
+    text-decoration: none;
+  }
+
+  .metadataSection {
+    scroll-margin-top: 16px;
   }
 
   .workspace,
