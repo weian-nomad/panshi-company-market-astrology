@@ -46,18 +46,18 @@ export default function PrivacyPage() {
             <ul>
               <li>讀取範圍：授權帳號所管理頻道的識別資訊與影片發布狀態。</li>
               <li>寫入範圍：上傳盤勢製作的影片與縮圖，並設定標題、說明、分類及可見度。</li>
-              <li>保存方式：更新權杖只存在 Nomad 的私有金鑰庫與主機秘密檔，不送到訪客瀏覽器，也不寫入公開 repository。</li>
+              <li>保存方式：更新權杖只存在 Nomad 的私有金鑰庫與短暫工作憑證；Studio 資料庫另保存目標頻道、已發布影片識別碼、可見度、上傳狀態與中斷續傳所需資料。這些內容不送到訪客瀏覽器，也不寫入公開 repository。</li>
               <li>AI 揭露：影片與說明欄會標示 AI 虛擬主持與合成語音；短片連回可查驗完整樣本的研究頁。</li>
             </ul>
             <div className={styles.callout}>
-              <p>頻道擁有者可由 Studio 撤銷工具同步終止 Google 授權、刪除 Nomad 金鑰庫內的更新權杖並停止發布；也可先在 <a href="https://myaccount.google.com/permissions" target="_blank" rel="noreferrer">Google 帳戶連結管理</a>撤銷，再要求 Nomad 清除本地授權資料。Google 服務另適用 <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer">Google 隱私權政策</a>與 <a href="https://www.youtube.com/t/terms" target="_blank" rel="noreferrer">YouTube 服務條款</a>。</p>
+              <p>頻道擁有者可由 Studio 撤銷工具同步終止 Google 授權、刪除更新權杖，以及清除 Studio 內的頻道、影片、續傳與稽核識別資料；本機產生的腳本與成片不是 Google 授權資料，可繼續保留。也可先在 <a href="https://myaccount.google.com/permissions" target="_blank" rel="noreferrer">Google 帳戶連結管理</a>撤銷，再要求 Nomad 在 7 日內完成本地刪除。Google 服務另適用 <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer">Google 隱私權政策</a>與 <a href="https://www.youtube.com/t/terms" target="_blank" rel="noreferrer">YouTube 服務條款</a>。</p>
             </div>
           </section>
 
           <section className={styles.section}>
             <h2>資料來源、分享與保存</h2>
             <p>公司與行情資料來自公開市場資料端點。開啟外部來源、Google 或 YouTube 連結後，該網站會依自己的政策處理資料。</p>
-            <p>盤勢不出售個人資料。只有維持主機、網路安全與影音發布所必要的服務會在其職責範圍內處理技術資料。營運紀錄只保留到完成安全、除錯或法令要求所需的期間；頻道授權則保留到撤銷、失效或不再需要為止。</p>
+            <p>盤勢不出售個人資料。只有維持主機、網路安全與影音發布所必要的服務會在其職責範圍內處理技術資料。營運紀錄只保留到完成安全、除錯或法令要求所需的期間；頻道授權資料則保留到撤銷、失效或不再需要為止。發布 worker 偵測到 Google 授權失效時，會停止待發布批次並清除 Studio 內的授權識別資料。</p>
           </section>
 
           <section className={styles.section}>

@@ -22,7 +22,8 @@ import {
   type OAuthAuthorizationResponse,
   type OAuthHandoff,
 } from "@/studio/oauth-handoff";
-import { loadVaultKeys, writeVaultKey } from "@/studio/vault";
+import { loadVaultKeys, vaultKeyMatches, writeVaultKey } from "@/studio/vault";
+import { deleteYouTubeAuthorizedData } from "@/studio/store";
 
 const AUTHORIZE_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
@@ -358,7 +359,16 @@ async function exchangeCode() {
 }
 
 async function revokeAuthorization() {
+  if (!process.env.STUDIO_DB_PATH?.trim()) {
+    throw new Error("STUDIO_DB_PATH is required so authorized YouTube data can be deleted.");
+  }
+  if (!process.env.NOMAD_KEY_VAULT?.trim()) {
+    throw new Error("NOMAD_KEY_VAULT is required so the persistent refresh token can be removed.");
+  }
   const refreshToken = requireEnv("YOUTUBE_REFRESH_TOKEN");
+  if (!(await vaultKeyMatches("YOUTUBE_REFRESH_TOKEN", refreshToken))) {
+    throw new Error("The configured key vault does not contain the active YouTube refresh token.");
+  }
   const response = await fetch(REVOKE_ENDPOINT, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -370,10 +380,23 @@ async function revokeAuthorization() {
   if (!response.ok && response.status !== 400) {
     throw new Error(`OAuth revocation failed (HTTP ${response.status}).`);
   }
-  await writeVaultKey("YOUTUBE_REFRESH_TOKEN", null);
+  const deletion = deleteYouTubeAuthorizedData();
+  const tokenRemoval = await writeVaultKey("YOUTUBE_REFRESH_TOKEN", null, {
+    requireExisting: true,
+    expectedValue: refreshToken,
+  });
+  if (!tokenRemoval.keyPresentBefore || tokenRemoval.keyPresentAfter) {
+    throw new Error("The YouTube refresh token was not removed from the configured key vault.");
+  }
   delete process.env.YOUTUBE_REFRESH_TOKEN;
   await unlink(getHandoffPath()).catch(() => undefined);
-  console.log("YouTube authorization revoked; the saved refresh token was removed (value hidden).");
+  console.log(JSON.stringify({
+    status: "revoked",
+    refreshTokenRemoved: tokenRemoval.keyPresentBefore && !tokenRemoval.keyPresentAfter,
+    authorizedDataDeleted: true,
+    editionsUpdated: deletion.editionsUpdated,
+    auditRowsDeleted: deletion.auditRowsDeleted,
+  }));
 }
 
 function printStatus() {

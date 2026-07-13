@@ -40,6 +40,7 @@ export type ResumableUploadState =
   | { kind: "expired" };
 
 class NonRetryableYouTubeError extends Error {}
+export class YouTubeGrantRevokedError extends Error {}
 
 function requiredSecret(name: "YOUTUBE_OAUTH_CLIENT_ID" | "YOUTUBE_OAUTH_CLIENT_SECRET" | "YOUTUBE_REFRESH_TOKEN") {
   const value = process.env[name]?.trim();
@@ -61,6 +62,9 @@ async function accessToken() {
   });
   const payload = (await response.json()) as TokenResponse;
   if (!response.ok || !payload.access_token) {
+    if (payload.error === "invalid_grant") {
+      throw new YouTubeGrantRevokedError("YouTube OAuth grant is invalid or revoked.");
+    }
     const code = payload.error && /^[a-z_]{1,64}$/u.test(payload.error)
       ? ` (${payload.error})`
       : "";
@@ -145,21 +149,27 @@ function stringArray(value: unknown) {
 function metadataForEdition(edition: StoredEdition, categoryId: string) {
   const config = getStudioConfig();
   const tags = stringArray(edition.manifest.tags);
+  const requestedVisibility = edition.requestedVisibility
+    ?? edition.visibilityOverride
+    ?? config.youtubeVisibility;
   const status: Record<string, unknown> = {
-    privacyStatus: config.youtubeVisibility,
+    privacyStatus: requestedVisibility,
     selfDeclaredMadeForKids: false,
     containsSyntheticMedia: true,
   };
   return {
-    snippet: {
-      title: edition.title.slice(0, 100),
-      description: edition.description.slice(0, 5_000),
-      tags,
-      categoryId,
-      defaultLanguage: "zh-TW",
-      defaultAudioLanguage: "zh-TW",
+    requestedVisibility,
+    resource: {
+      snippet: {
+        title: edition.title.slice(0, 100),
+        description: edition.description.slice(0, 5_000),
+        tags,
+        categoryId,
+        defaultLanguage: "zh-TW",
+        defaultAudioLanguage: "zh-TW",
+      },
+      status,
     },
-    status,
   };
 }
 
@@ -388,7 +398,7 @@ export async function uploadReadyEdition(
     if (state.kind === "expired") location = null;
   }
   if (!video && !location) {
-    location = await initiateResumableUpload({ token, metadata, size: videoSize });
+    location = await initiateResumableUpload({ token, metadata: metadata.resource, size: videoSize });
     await persistence.persistSession(location, videoSize);
   }
   if (!video) {
@@ -420,7 +430,7 @@ export async function uploadReadyEdition(
     videoId: video.id,
     videoUrl: `https://www.youtube.com/watch?v=${encodeURIComponent(video.id)}`,
     visibility,
-    requestedVisibility: config.youtubeVisibility,
+    requestedVisibility: metadata.requestedVisibility,
     channel: { id: channel.id, title: channel.snippet?.title || channel.id },
     categoryId,
     postUploadWarnings,

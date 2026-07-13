@@ -29,6 +29,11 @@ export type StoredEdition = {
   thumbnailPath: string | null;
   publishAt: string | null;
   channelId: string | null;
+  visibilityOverride: YouTubeVisibility | null;
+  /** Effective visibility frozen when the upload worker first claims the edition. */
+  requestedVisibility: YouTubeVisibility | null;
+  /** Authoritative visibility returned by YouTube after upload. */
+  actualVisibility: YouTubeVisibility | null;
   legalReviewId: string | null;
   approvedAt: string | null;
   approvedBy: string | null;
@@ -56,6 +61,9 @@ type EditionRow = {
   thumbnail_path: string | null;
   publish_at: string | null;
   channel_id: string | null;
+  visibility_override: string | null;
+  requested_visibility: string | null;
+  actual_visibility: string | null;
   legal_review_id: string | null;
   approved_at: string | null;
   approved_by: string | null;
@@ -130,6 +138,9 @@ function migrateStudioEditions(db: DatabaseSync) {
     ],
     ["publish_retry_at", "ALTER TABLE studio_editions ADD COLUMN publish_retry_at TEXT"],
     ["publish_claim_token", "ALTER TABLE studio_editions ADD COLUMN publish_claim_token TEXT"],
+    ["visibility_override", "ALTER TABLE studio_editions ADD COLUMN visibility_override TEXT"],
+    ["requested_visibility", "ALTER TABLE studio_editions ADD COLUMN requested_visibility TEXT"],
+    ["actual_visibility", "ALTER TABLE studio_editions ADD COLUMN actual_visibility TEXT"],
   ] as const;
   for (const [column, statement] of migrations) {
     if (!columns.has(column)) db.exec(statement);
@@ -162,6 +173,15 @@ export function getStudioDb() {
       thumbnail_path TEXT,
       publish_at TEXT,
       channel_id TEXT,
+      visibility_override TEXT CHECK (
+        visibility_override IS NULL OR visibility_override IN ('public', 'unlisted', 'private')
+      ),
+      requested_visibility TEXT CHECK (
+        requested_visibility IS NULL OR requested_visibility IN ('public', 'unlisted', 'private')
+      ),
+      actual_visibility TEXT CHECK (
+        actual_visibility IS NULL OR actual_visibility IN ('public', 'unlisted', 'private')
+      ),
       legal_review_id TEXT,
       approved_at TEXT,
       approved_by TEXT,
@@ -206,6 +226,15 @@ function parseJson(value: string) {
   }
 }
 
+function parseStoredVisibility(
+  value: string | null,
+  column: "visibility_override" | "requested_visibility" | "actual_visibility",
+): YouTubeVisibility | null {
+  if (value === null) return null;
+  if (value === "public" || value === "unlisted" || value === "private") return value;
+  throw new Error(`Stored ${column} contains an unsupported YouTube visibility.`);
+}
+
 function mapEdition(row: EditionRow): StoredEdition {
   return {
     tradeDate: row.trade_date,
@@ -219,6 +248,9 @@ function mapEdition(row: EditionRow): StoredEdition {
     thumbnailPath: row.thumbnail_path,
     publishAt: row.publish_at,
     channelId: row.channel_id,
+    visibilityOverride: parseStoredVisibility(row.visibility_override, "visibility_override"),
+    requestedVisibility: parseStoredVisibility(row.requested_visibility, "requested_visibility"),
+    actualVisibility: parseStoredVisibility(row.actual_visibility, "actual_visibility"),
     legalReviewId: row.legal_review_id,
     approvedAt: row.approved_at,
     approvedBy: row.approved_by,
@@ -264,6 +296,12 @@ type EditionPublishRuntimeFields =
  * or resumable session and create a duplicate upload.
  */
 export function isEditionGenerationLocked(edition: StoredEdition) {
+  // A non-null override is also the durable marker that an operator exercised
+  // their final publishing controls. A later generator rerun must not silently
+  // replace those choices before the upload worker claims the edition.
+  if (edition.visibilityOverride !== null) return true;
+  if (edition.requestedVisibility !== null) return true;
+  if (edition.actualVisibility != null) return true;
   if ([
     "approved",
     "uploading",
@@ -292,9 +330,10 @@ export function saveEdition(
     db.prepare(
       `INSERT INTO studio_editions (
        trade_date, status, title, description, manifest_json, qc_json, content_hash,
-       video_path, thumbnail_path, publish_at, channel_id, legal_review_id,
+       video_path, thumbnail_path, publish_at, channel_id, visibility_override,
+       requested_visibility, actual_visibility, legal_review_id,
        approved_at, approved_by, youtube_video_id, youtube_url, error, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(trade_date) DO UPDATE SET
        status = excluded.status,
        title = excluded.title,
@@ -306,6 +345,9 @@ export function saveEdition(
        thumbnail_path = excluded.thumbnail_path,
        publish_at = excluded.publish_at,
        channel_id = excluded.channel_id,
+       visibility_override = excluded.visibility_override,
+       requested_visibility = excluded.requested_visibility,
+       actual_visibility = excluded.actual_visibility,
        legal_review_id = excluded.legal_review_id,
        approved_at = excluded.approved_at,
        approved_by = excluded.approved_by,
@@ -330,6 +372,9 @@ export function saveEdition(
       input.thumbnailPath,
       input.publishAt,
       input.channelId,
+      input.visibilityOverride,
+      input.requestedVisibility,
+      input.actualVisibility,
       input.legalReviewId,
       input.approvedAt,
       input.approvedBy,
@@ -353,6 +398,79 @@ export function getEdition(tradeDate: string) {
     .prepare(`SELECT * FROM studio_editions WHERE trade_date = ?`)
     .get(tradeDate) as EditionRow | undefined;
   return row ? mapEdition(row) : null;
+}
+
+export function updateEditionPublishingControls(input: {
+  tradeDate: string;
+  title: string;
+  description: string;
+  visibility: YouTubeVisibility;
+  actor: string;
+}) {
+  const title = input.title.trim();
+  const description = input.description.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/u.test(input.tradeDate)) throw new Error("交易日格式不正確。");
+  if (!title || title.length > 100) throw new Error("YouTube 標題需為 1 至 100 字元。");
+  if (!description || description.length > 5_000) {
+    throw new Error("YouTube 說明需為 1 至 5,000 字元。");
+  }
+  if (!(input.visibility === "public"
+    || input.visibility === "unlisted"
+    || input.visibility === "private")) {
+    throw new Error("YouTube 可見度不正確。");
+  }
+
+  const now = new Date().toISOString();
+  const result = getStudioDb().prepare(
+    `UPDATE studio_editions
+     SET title = ?, description = ?, visibility_override = ?, updated_at = ?
+     WHERE trade_date = ? AND status IN ('ready', 'approved')
+       AND publish_attempt_count = 0 AND youtube_video_id IS NULL
+       AND upload_session_url IS NULL AND requested_visibility IS NULL`,
+  ).run(title, description, input.visibility, now, input.tradeDate);
+  if (Number(result.changes) !== 1) {
+    throw new Error("這期內容已進入發布流程，不能再變更 YouTube 設定。");
+  }
+  appendAudit(input.tradeDate, "edition_publish_controls_updated", input.actor, {
+    visibility: input.visibility,
+  });
+  return getEdition(input.tradeDate)!;
+}
+
+/**
+ * Removes data obtained from, or used to address, the authorized YouTube
+ * channel while retaining locally generated scripts and rendered media.
+ */
+export function deleteYouTubeAuthorizedData() {
+  const db = getStudioDb();
+  const now = new Date().toISOString();
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const editions = db.prepare(
+      `UPDATE studio_editions
+       SET status = 'quarantined', channel_id = NULL, visibility_override = NULL,
+           requested_visibility = NULL, actual_visibility = NULL,
+           youtube_video_id = NULL, youtube_url = NULL, upload_session_url = NULL,
+           upload_size = NULL, publish_retry_at = NULL, publish_claim_token = NULL,
+           error = 'YouTube 授權已撤銷；頻道與影片識別資料已刪除。',
+           updated_at = ?
+       WHERE channel_id IS NOT NULL OR visibility_override IS NOT NULL
+          OR requested_visibility IS NOT NULL
+          OR actual_visibility IS NOT NULL
+          OR youtube_video_id IS NOT NULL
+          OR youtube_url IS NOT NULL OR upload_session_url IS NOT NULL
+          OR status IN ('ready', 'approved', 'uploading', 'publish_retry')`,
+    ).run(now);
+    const audit = db.prepare("DELETE FROM studio_audit_log").run();
+    db.exec("COMMIT");
+    return {
+      editionsUpdated: Number(editions.changes),
+      auditRowsDeleted: Number(audit.changes),
+    };
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
 }
 
 export function listEditions(limit = 20) {
@@ -444,7 +562,8 @@ export function claimNextPublishableEdition(options: PublishClaimOptions = {}) {
 
     const result = db.prepare(
       `UPDATE studio_editions
-       SET status = 'uploading', publish_attempt_count = publish_attempt_count + 1,
+       SET requested_visibility = COALESCE(requested_visibility, visibility_override, ?),
+           status = 'uploading', publish_attempt_count = publish_attempt_count + 1,
            publish_retry_at = NULL, publish_claim_token = ?, error = NULL, updated_at = ?
        WHERE trade_date = ? AND publish_attempt_count < ? AND (
          status IN ('ready', 'approved')
@@ -452,6 +571,7 @@ export function claimNextPublishableEdition(options: PublishClaimOptions = {}) {
          OR (status = 'uploading' AND updated_at <= ?)
        )`,
     ).run(
+      config.youtubeVisibility,
       claimToken,
       nowIso,
       candidate.trade_date,
@@ -559,11 +679,12 @@ export function setEditionUploaded(
     .prepare(
       `UPDATE studio_editions
        SET status = ?, youtube_video_id = ?, youtube_url = ?, error = NULL,
+           actual_visibility = ?,
            upload_session_url = NULL, upload_size = NULL, publish_retry_at = NULL,
            publish_claim_token = NULL, updated_at = ?
        WHERE trade_date = ? AND status = 'uploading' AND publish_claim_token = ?`,
     )
-    .run(status, youtubeVideoId, youtubeUrl, now, tradeDate, claimToken);
+    .run(status, youtubeVideoId, youtubeUrl, visibility, now, tradeDate, claimToken);
   if (Number(result.changes) !== 1) return null;
   const action = visibility === "public"
     ? "edition_published"

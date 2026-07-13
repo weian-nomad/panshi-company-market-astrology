@@ -20,8 +20,8 @@ const STATUS_COPY: Record<StoredEdition["status"], { label: string; detail: stri
   approved: { label: "待發布", detail: "舊版佇列已納入自動發布。" },
   uploading: { label: "上傳中", detail: "正在核對上傳進度；中斷時會從已確認的位置續傳。" },
   publish_retry: { label: "稍後續傳", detail: "本次未完成；重試時間到後會自動接續，達上限即停止。" },
-  uploaded_private: { label: "已上傳", detail: "影片依設定保留為不公開或私人狀態。" },
-  scheduled: { label: "已公開", detail: "影片已直接發布至 YouTube。" },
+  uploaded_private: { label: "已上傳", detail: "YouTube 實際回報為不公開或私人。" },
+  scheduled: { label: "已公開", detail: "YouTube 實際回報為公開。" },
   quarantined: { label: "已隔離", detail: "這期不會進入發布佇列。" },
   failed: { label: "已停止", detail: "處理或發布已停止；成片與錯誤紀錄仍保留。" },
   skipped: { label: "本日略過", detail: "非交易日或資料未完成。" },
@@ -116,6 +116,22 @@ export default async function StudioPage({
   const selected = editions.find((edition) => edition.tradeDate === params.date) || editions[0] || null;
   const stocks = selected ? manifestStocks(selected) : [];
   const audit = selected ? listAudit(selected.tradeDate).slice(0, 8) : [];
+  const requestedVisibility = selected?.requestedVisibility
+    ?? selected?.visibilityOverride
+    ?? config.youtubeVisibility;
+  const requestedVisibilitySource = selected?.requestedVisibility
+    ? "上傳時設定"
+    : selected?.visibilityOverride
+      ? "本期設定"
+      : "全域預設";
+  const actualVisibility = selected?.actualVisibility ?? null;
+  const canEditPublishingControls = Boolean(
+    selected
+      && (selected.status === "ready" || selected.status === "approved")
+      && selected.publishAttempts === 0
+      && !selected.youtubeVideoId
+      && !selected.uploadSessionUrl,
+  );
 
   return (
     <main className={styles.shell}>
@@ -135,6 +151,9 @@ export default async function StudioPage({
 
       {params.notice === "quarantined" && (
         <p className={styles.notice} role="status">本期已隔離，不會進入發布佇列。</p>
+      )}
+      {params.notice === "settings-saved" && (
+        <p className={styles.notice} role="status">YouTube 標題、說明與可見度已更新；自動發布排程不變。</p>
       )}
       {params.notice === "error" && (
         <p className={styles.errorNotice} role="alert">操作沒有完成。內容仍保留，請重新檢查後再試。</p>
@@ -208,7 +227,18 @@ export default async function StudioPage({
                   <dl>
                     <div><dt>頻道</dt><dd>{config.channelId || "尚未連結 YouTube 頻道"}</dd></div>
                     <div><dt>自動發布</dt><dd>{config.autoPublish ? "開啟，成片完成後直接上傳" : "已暫停，佇列原地保留"}</dd></div>
-                    <div><dt>可見度</dt><dd>{VISIBILITY_COPY[config.youtubeVisibility]}</dd></div>
+                    <div>
+                      <dt>送出可見度</dt>
+                      <dd>{VISIBILITY_COPY[requestedVisibility]}（{requestedVisibilitySource}）</dd>
+                    </div>
+                    <div>
+                      <dt>YouTube 實際可見度</dt>
+                      <dd>
+                        {actualVisibility
+                          ? `${VISIBILITY_COPY[actualVisibility]}${actualVisibility !== requestedVisibility ? "（與送出設定不同）" : ""}`
+                          : "尚未取得平台回報"}
+                      </dd>
+                    </div>
                     <div><dt>平台分類</dt><dd>{config.youtubeCategoryName}</dd></div>
                     <div><dt>AI 內容</dt><dd>已標示虛擬主持與合成媒體</dd></div>
                     <div><dt>兒少內容</dt><dd>否</dd></div>
@@ -247,15 +277,56 @@ export default async function StudioPage({
               </section>
 
               <section className={styles.metadataSection} aria-labelledby="metadata-title">
-                <h3 id="metadata-title">YouTube 中繼資料</h3>
-                <label>
-                  標題
-                  <textarea readOnly rows={2} value={selected.title} />
-                </label>
-                <label>
-                  說明
-                  <textarea readOnly rows={12} value={selected.description} />
-                </label>
+                <div className={styles.sectionHeading}>
+                  <h3 id="metadata-title">YouTube 發布設定</h3>
+                  <p>可選擇調整；儲存不是逐片核准，預設仍由 worker 自動接手。</p>
+                </div>
+                <form action="/api/studio/settings" method="post" className={styles.metadataForm}>
+                  <input type="hidden" name="trade_date" value={selected.tradeDate} />
+                  <label>
+                    目標頻道
+                    <input readOnly value={config.channelId || "尚未連結 YouTube 頻道"} />
+                  </label>
+                  <label>
+                    標題
+                    <textarea
+                      name="title"
+                      rows={2}
+                      maxLength={100}
+                      defaultValue={selected.title}
+                      readOnly={!canEditPublishingControls}
+                      required
+                    />
+                  </label>
+                  <label>
+                    說明
+                    <textarea
+                      name="description"
+                      rows={12}
+                      maxLength={5_000}
+                      defaultValue={selected.description}
+                      readOnly={!canEditPublishingControls}
+                      required
+                    />
+                  </label>
+                  <label>
+                    送出可見度
+                    <select
+                      name="visibility"
+                      defaultValue={requestedVisibility}
+                      disabled={!canEditPublishingControls}
+                    >
+                      <option value="public">公開</option>
+                      <option value="unlisted">不公開</option>
+                      <option value="private">私人</option>
+                    </select>
+                  </label>
+                  {canEditPublishingControls ? (
+                    <button type="submit">儲存發布設定</button>
+                  ) : (
+                    <p className={styles.disabledAction}>這期已進入發布流程，設定已鎖定。</p>
+                  )}
+                </form>
               </section>
 
               <section className={styles.approvalSection} aria-labelledby="approval-title">

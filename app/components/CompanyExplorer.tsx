@@ -1087,6 +1087,7 @@ export function CompanyExplorer() {
         <p>把時間當成索引，把價格當成證據。</p>
         <nav className="footer-meta" aria-label="網站資訊">
           <span>臺股資料研究工具</span>
+          <a href="https://www.youtube.com/channel/UCycI7woWFpc3bH2JIZsC80g" target="_blank" rel="noreferrer">今日五盤 · YouTube</a>
           <Link href={`${APP_BASE_PATH}/privacy`}>隱私與資料</Link>
           <Link href={`${APP_BASE_PATH}/terms`}>使用條款</Link>
         </nav>

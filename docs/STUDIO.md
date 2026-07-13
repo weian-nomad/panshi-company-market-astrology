@@ -31,10 +31,10 @@ YOUTUBE_VISIBILITY=public
 
 新建且尚未通過 YouTube API 稽核的專案，平台會把 API 上傳強制設為私人。
 `YOUTUBE_VISIBILITY=public` 會持續表示預期設定，但 worker 只記錄 YouTube 實際回傳的可見度，不會把
-私人影片誤報為已公開。通過一次性專案稽核後，每支影片不再需要人工發布。詳見
-[YouTube Videos API 說明](https://developers.google.com/youtube/v3/docs/videos)。
+私人影片誤報為已公開。通過專案稽核後，每支影片不再需要人工發布；YouTube 仍可能依政策要求定期複審，屆時沿用同一個全域停止與佇列機制。詳見
+[YouTube Videos API 說明](https://developers.google.com/youtube/v3/docs/videos)與 [Quota and Compliance Audits](https://developers.google.com/youtube/v3/guides/quota_and_compliance_audits)。
 
-Nomad 首次部署若仍在等待這項專案稽核，正式環境先設定 `AUTO_PUBLISH=false`：每日資料、選片與成片照常產生，批次停在 `ready` 佇列，不先上傳成無法自動轉公開的私人影片。稽核通過後只需切回全域開關；既有佇列會依交易日順序直接發布，仍沒有逐片核准流程。
+Nomad 首次部署若仍在等待這項專案稽核，正式環境先設定 `AUTO_PUBLISH=false`：每日資料、選片與成片照常產生，批次停在 `ready` 佇列，不先上傳成無法自動轉公開的私人影片。稽核通過後只需切回全域開關；既有佇列會依交易日順序直接發布，仍沒有逐片核准流程。申請入口與可能的定期複審規則見 [YouTube Quota and Compliance Audits](https://developers.google.com/youtube/v3/guides/quota_and_compliance_audits)。
 
 需要立即停止新影片上傳時，只要切換全域開關：
 
@@ -140,14 +140,13 @@ npm run studio:oauth -- exchange
 npm run studio:oauth -- revoke
 ```
 
-指令會先向 Google 撤銷目前的更新權杖，再以原子方式從 Nomad vault 刪除
-`YOUTUBE_REFRESH_TOKEN` 與未完成的 OAuth 交接檔；失效的既有權杖也會直接清除。完成後自動發布無法再取得存取權，直到重新走一次同意流程。若先從 Google 帳戶頁撤銷，也應執行此指令清除本地副本。
+撤銷指令必須在已掛載正式 Studio 持久卷的營運環境執行，並明確設定 `STUDIO_DB_PATH` 與指向持久、可寫金鑰來源的 `NOMAD_KEY_VAULT`；短暫的 systemd credential 檔不能代替來源 vault。指令會先確認 vault 內的權杖與目前憑證一致，缺少或不一致時直接停止，不會誤報刪除成功。確認後才向 Google 撤銷目前的更新權杖，以原子方式從 Nomad vault 刪除 `YOUTUBE_REFRESH_TOKEN` 與未完成的 OAuth 交接檔，同時清除 Studio DB 內的頻道、影片、續傳與稽核識別資料並隔離待發布批次；本機腳本與成片保留。失效的既有權杖也會完成本地清除。完成後自動發布無法再取得存取權，直到重新走一次同意流程。若先從 Google 帳戶頁撤銷，也應執行此指令清除本地副本。
 
 上傳前設定 `YOUTUBE_CHANNEL_ID`，工具會核對登入帳號實際管理的頻道。預設授權只開啟影片上傳與頻道讀取；不申請留言或帳號管理權限。
 
 ## 監看、隔離與失敗處理
 
-`/studio` 是狀態監看台，不是每期核准關卡。它會顯示成片、五檔內容、YouTube 中繼資料、目前可見度、發布嘗試次數、下次續傳時間、處理狀態與稽核紀錄，但不顯示 resumable session URL 或 worker claim token。如果某期尚在 `ready`、舊版 `approved`、`publish_retry` 或 `failed` 狀態，可以單獨隔離；仍由 worker 持有有效租約的批次不能重複操作。
+`/studio` 是狀態監看台，不是每期核准關卡。它會顯示成片、五檔內容、目標 YouTube 頻道、中繼資料、目前可見度、發布嘗試次數、下次續傳時間、處理狀態與稽核紀錄，但不顯示 resumable session URL 或 worker claim token。尚未開始上傳時，操作者可選擇調整標題、說明與 `public`／`unlisted`／`private`；不操作就沿用自動生成內容與全域預設，worker 不需等待確認。如果某期尚在 `ready`、舊版 `approved`、`publish_retry` 或 `failed` 狀態，可以單獨隔離；仍由 worker 持有有效租約的批次不能重複操作。
 
 自動上傳前的程式檢核包含：
 

@@ -32,6 +32,7 @@ export default function TermsPage() {
             <h2>服務內容</h2>
             <p>盤勢依公司成立日或首日交易建立象徵性命盤，並把特定日期的組態與公開市場歷史資料對齊。網站與「今日五盤」影片可能呈現統計分布、反例、公司事件、資料缺口與文化解讀。</p>
             <p>星象重合不代表因果。歷史案例也不是獨立實驗，無法保證未來重演。</p>
+            <p>「今日五盤」Studio 使用 YouTube API Services 把成片發布到指定頻道。連結或操作頻道的使用者除本條款外，也同意遵守 <a href="https://www.youtube.com/t/terms" target="_blank" rel="noreferrer">YouTube 服務條款</a>；授權資料的使用與刪除方式見 <Link href="/privacy">隱私與資料</Link>。</p>
           </section>
 
           <section className={styles.section}>
