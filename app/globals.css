@@ -2072,7 +2072,20 @@ footer p {
   font-size: 13px;
 }
 
-footer > span { justify-self: end; font-family: var(--mono); }
+.footer-meta {
+  display: flex;
+  align-items: center;
+  justify-self: end;
+  gap: 12px;
+  font-family: var(--mono);
+}
+
+.footer-meta a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+
+.footer-meta a:hover { color: var(--ink); }
 
 @keyframes section-reveal {
   from {
@@ -3166,6 +3179,8 @@ footer > span { justify-self: end; font-family: var(--mono); }
   }
 
   footer p { display: none; }
+
+  .footer-meta { flex-wrap: wrap; justify-content: flex-end; }
 }
 
 @media (max-width: 680px) {
@@ -3544,6 +3559,12 @@ footer > span { justify-self: end; font-family: var(--mono); }
   }
 
   footer { min-height: 110px; }
+
+  .footer-meta {
+    align-items: flex-end;
+    flex-direction: column;
+    gap: 5px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

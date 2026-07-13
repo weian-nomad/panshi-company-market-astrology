@@ -22,6 +22,7 @@
 - 最長七年的同組態研究：樣本數、收盤價變動中位數、四分位、正變動筆數與期間最低偏離。
 - 官方除權息、股東會、當期重大訊息與暫停交易核對，未完整涵蓋處會直接標示。
 - 本機決策日誌：行動理由、可推翻條件、回看日期與當時資料日期。
+- 「今日五盤」自動內容引擎：每個交易日從五種不同研究理由各選一檔，產生一支 Remotion 直式影片並交由 Nomad 頻道發布。
 
 ## 資料與計算
 
@@ -39,10 +40,16 @@
 
 ```bash
 npm run backfill:market   # 一次性回填 7 年資料，可重複執行、可從中斷處繼續
-npm run update:market     # 每日增量更新最近幾天，跑在 cron/systemd timer
+npm run update:market     # 沿 ingest ledger 增量追上最新交易日，並修復近期缺口
 ```
 
 `MARKET_DB_PATH` 指到的 SQLite 檔案在正式環境必須是掛載 volume，見 [docs/deployment.md](docs/deployment.md)。
+
+## 今日五盤內容引擎
+
+每日引擎先掃描完整市場，再依市場異動、量能異常、相位密集、歷史分歧與稀有組態選出五檔。每段固定呈現現在的盤、同組態歷史與資料界線；五檔是五種觀察角度，不是排名，也不轉成買賣訊號。
+
+成片由 Remotion、AI 虛擬觀測員與合成語音組成。資料、口播、字幕、畫面與縮圖共用同一份 fact manifest；通過內容與影音 QC 後，worker 會直接接手上傳。排程、OAuth、監看台、失敗恢復與部署方式見 [docs/STUDIO.md](docs/STUDIO.md)。
 
 ## 開發
 
@@ -81,7 +88,8 @@ docker run --rm -p 3000:3000 -e SITE_URL=http://localhost:3000 panshi
 ## 公開版本
 
 - Nomad SustainTech：<https://panshi.nomadsustaintech.com/>（自己的子網域）
-- 正式環境以非特權、非 root Docker 容器執行，跑在獨立主機（v100）。
+- 隱私與資料：<https://panshi.nomadsustaintech.com/privacy>；使用條款：<https://panshi.nomadsustaintech.com/terms>
+- 正式環境以非特權、非 root Docker 容器在獨立執行環境中運作。
 - `SITE_URL` 用來產生 canonical 與社群分享網址；它不是秘密。
 
 ## 產品研究

@@ -25,8 +25,13 @@ curl --fail http://127.0.0.1:3000/api/health
 | `SITE_URL` | production | Canonical public URL and social-card origin |
 | `PORT` | no | Container port; defaults to `3000` |
 | `MARKET_DB_PATH` | production | SQLite cache file path; defaults to `data/panshi-market.db` |
+| `STUDIO_DB_PATH` | Studio monitoring | Shared Studio state database path |
+| `STUDIO_OUTPUT_ROOT` | Studio monitoring | Shared rendered-media volume path |
+| `STUDIO_REVIEW_TOKEN` | Studio monitoring | Strong password for the non-indexed monitoring console |
 
-`SITE_URL` 不是秘密。不需要外部 API key；公司與價格資料來自 TWSE + TPEx 公開市場資料端點。
+`SITE_URL` 不是秘密。核心 Web App 不需要外部 API key；公司與價格資料來自 TWSE + TPEx 公開市場資料端點。每日內容 worker 的語音與 YouTube 憑證另依 [Studio 部署說明](STUDIO.md) 從中央 vault allowlist 到兩個最小權限憑證檔，再以 systemd `LoadCredential=` 提供給各自的 worker；秘密不進入 service manager environment。
+
+啟用 `/studio` 時，主 Web container 必須掛載與 worker 相同的 Studio DB、成片目錄，並只取得監看台所需的 `STUDIO_REVIEW_TOKEN`。語音與 YouTube 憑證不提供給 Web container；監看台密碼也不寫進生片或發布 worker 的 credential env。
 
 ## 本地價格快取（SQLite）
 
@@ -34,7 +39,7 @@ curl --fail http://127.0.0.1:3000/api/health
 
 - `MARKET_DB_PATH` 指到的 `.db` 檔案必須是**掛載 volume**、不能只存在 image 裡（容器重建/替換不能丟資料，回填要花約一小時，不该每次部署重跑）。
 - 一次性回填：`npm run backfill:market`（可重複執行，已完成的 (market, date) 會跳過，中斷後重跑會從斷點繼續）。
-- 每日增量：`npm run update:market`（抓最近幾天，跑在 daily cron/systemd timer，讓快取跟上最新交易日）。
+- 每日增量：`npm run update:market`（沿 ingest ledger 分批追上最新交易日，並修復近期缺口；跑在 daily cron/systemd timer）。
 - 兩支 script 都跑在 Next.js bundler 之外（純 Node ESM），import 用 `node --import ./scripts/register-path-alias.mjs <script>`（處理 `@/` alias 與 JSON import-attribute）。
 - `lib/market-data.ts` 是唯讀路徑：先讀快取，只在快取有缺口時即時補抓最近幾天（有 wall-clock 上限，絕不會為了補一段深歷史卡住請求）。快取完全空的公司會回傳 `coverage.complete:false`，不是報錯。
 

@@ -1,0 +1,20 @@
+[Unit]
+Description=Nomad Panshi Studio daily Remotion generator
+After=docker.service network-online.target panshi-studio-market-update.service
+Wants=network-online.target
+Requires=docker.service panshi-studio-market-update.service
+
+[Service]
+Type=oneshot
+User=panshi
+Group=panshi
+SupplementaryGroups=docker
+EnvironmentFile=/etc/panshi/studio.env
+LoadCredential=studio-generate.env:/etc/panshi/credentials/studio-generate.env
+ExecStartPre=-/usr/bin/docker rm --force panshi-studio-generate
+ExecStart=/usr/bin/docker run --rm --name panshi-studio-generate --shm-size=1g --env-file /etc/panshi/studio.env --env-file %d/studio-generate.env --volume ${PANSHI_DATA_DIR}:/app/runtime-data --volume ${PANSHI_STUDIO_DIR}:/app/var/panshi-studio ${PANSHI_STUDIO_IMAGE} npm exec -- tsx studio/commands/generate-daily.ts
+TimeoutStartSec=45min
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

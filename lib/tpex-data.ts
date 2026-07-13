@@ -29,8 +29,27 @@ type TpexCompanyRaw = {
 type TpexPriceTable = {
   date: string;
   totalCount: number;
+  fields?: string[];
   data: string[][];
 };
+
+export type TpexDailyPayload = {
+  stat?: string;
+  date?: string | number;
+  tables?: TpexPriceTable[];
+};
+
+const TPEX_MIN_RAW_DAILY_ROWS = 400;
+const TPEX_MIN_PARSED_DAILY_ROWS = 300;
+const TPEX_MIN_PARSE_RATIO = 0.5;
+const TPEX_DAILY_COLUMNS = [
+  [0, "代號"],
+  [2, "收盤"],
+  [4, "開盤"],
+  [5, "最高"],
+  [6, "最低"],
+  [7, "成交股數"],
+] as const;
 
 function numberValue(value: string) {
   const numeric = Number(String(value || "").replace(/,/g, "").trim());
@@ -60,6 +79,79 @@ function compactOrIsoDate(value: string) {
   const digits = cleaned.replace(/\D/g, "");
   if (!/^\d{8}$/.test(digits)) return "";
   return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+}
+
+/** Parse and validate the official TPEx whole-market response. */
+export function parseTpexDailyQuotesPayload(
+  isoDate: string,
+  payload: TpexDailyPayload,
+): Array<{ symbol: string; bar: PriceBar }> {
+  const compact = isoDate.replace(/-/g, "");
+  if (String(payload.stat || "").trim().toLowerCase() !== "ok") {
+    throw new Error(`TPEx ${isoDate} daily quote response status is invalid`);
+  }
+  const responseDate = String(payload.date ?? "").replace(/\D/g, "");
+  if (responseDate !== compact) {
+    throw new Error(`TPEx daily quote date mismatch: requested ${compact}, received ${responseDate || "missing"}`);
+  }
+  if (!Array.isArray(payload.tables) || !payload.tables[0]) {
+    throw new Error(`TPEx ${isoDate} daily quote table is missing`);
+  }
+  const table = payload.tables[0];
+  if (rocSlashToIso(String(table.date || "")) !== isoDate) {
+    throw new Error(`TPEx daily quote table date mismatch for ${isoDate}`);
+  }
+  if (!Array.isArray(table.data)) {
+    throw new Error(`TPEx ${isoDate} daily quote rows are missing`);
+  }
+  if (!TPEX_DAILY_COLUMNS.every(([index, label]) => table.fields?.[index]?.trim() === label)) {
+    throw new Error(`TPEx ${isoDate} daily quote columns are invalid`);
+  }
+  const declaredCount = Number(table.totalCount);
+  if (!Number.isInteger(declaredCount) || declaredCount < 0) {
+    throw new Error(`TPEx ${isoDate} daily quote totalCount is invalid`);
+  }
+  if (table.data.length !== declaredCount) {
+    throw new Error(
+      `TPEx ${isoDate} daily quote response is incomplete: ${table.data.length}/${declaredCount} raw rows`,
+    );
+  }
+  if (declaredCount === 0) return [];
+  if (declaredCount < TPEX_MIN_RAW_DAILY_ROWS) {
+    throw new Error(`TPEx ${isoDate} daily quote response is incomplete: ${declaredCount} raw rows`);
+  }
+
+  const results: Array<{ symbol: string; bar: PriceBar }> = [];
+  for (const row of table.data) {
+    if (!Array.isArray(row) || row.length < 8) continue;
+    const symbol = String(row[0] || "").trim();
+    if (!/^\d{4}[A-Z]?$/.test(symbol)) continue;
+    const close = numberValue(row[2]);
+    if (close <= 0) continue;
+    results.push({
+      symbol,
+      bar: {
+        date: isoDate,
+        open: numberValue(row[4]),
+        high: numberValue(row[5]),
+        low: numberValue(row[6]),
+        close,
+        volume: numberValue(row[7]),
+      },
+    });
+  }
+  if (
+    results.length < TPEX_MIN_PARSED_DAILY_ROWS
+    || results.length / declaredCount < TPEX_MIN_PARSE_RATIO
+  ) {
+    throw new Error(
+      `TPEx ${isoDate} daily quote response is incomplete: ${results.length}/${declaredCount} usable rows`,
+    );
+  }
+  if (new Set(results.map((row) => row.symbol)).size !== results.length) {
+    throw new Error(`TPEx ${isoDate} daily quote response contains duplicate symbols`);
+  }
+  return results;
 }
 
 export async function fetchTpexCompanyRegistry(): Promise<CompanyRow[]> {
@@ -109,28 +201,6 @@ export async function fetchTpexDailyQuotes(
     DAILY_BULK_TIMEOUT_MS,
   );
   if (!response.ok) throw new Error(`TPEx 股價 HTTP ${response.status}`);
-  const payload = (await response.json()) as { tables?: TpexPriceTable[] };
-  const table = payload.tables?.[0];
-  if (!table || !table.totalCount || !Array.isArray(table.data)) return [];
-
-  const results: Array<{ symbol: string; bar: PriceBar }> = [];
-  for (const row of table.data) {
-    if (!Array.isArray(row) || row.length < 8) continue;
-    const symbol = String(row[0] || "").trim();
-    if (!/^\d{4}[A-Z]?$/.test(symbol)) continue;
-    const close = numberValue(row[2]);
-    if (close <= 0) continue;
-    results.push({
-      symbol,
-      bar: {
-        date: isoDate,
-        open: numberValue(row[4]),
-        high: numberValue(row[5]),
-        low: numberValue(row[6]),
-        close,
-        volume: numberValue(row[7]),
-      },
-    });
-  }
-  return results;
+  const payload = (await response.json()) as TpexDailyPayload;
+  return parseTpexDailyQuotesPayload(isoDate, payload);
 }

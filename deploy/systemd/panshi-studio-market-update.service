@@ -1,0 +1,19 @@
+[Unit]
+Description=Nomad Panshi Studio market cache update
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=panshi
+Group=panshi
+SupplementaryGroups=docker
+EnvironmentFile=/etc/panshi/studio.env
+ExecStartPre=-/usr/bin/docker rm --force panshi-studio-market-update
+ExecStart=/usr/bin/docker run --rm --name panshi-studio-market-update --env-file /etc/panshi/studio.env --volume ${PANSHI_DATA_DIR}:/app/runtime-data ${PANSHI_STUDIO_IMAGE} npm run update:market
+TimeoutStartSec=30min
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

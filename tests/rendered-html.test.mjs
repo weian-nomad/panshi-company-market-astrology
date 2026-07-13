@@ -109,6 +109,12 @@ test("removes starter assets and keeps product-specific sources", async () => {
     heroImage,
     displayFont,
     fontLicense,
+    remotionPresenter,
+    remotionDisplayFont,
+    siteChironNotice,
+    remotionChironNotice,
+    packagedIbmNotice,
+    remotionIbmNotice,
   ] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
@@ -124,6 +130,12 @@ test("removes starter assets and keeps product-specific sources", async () => {
     stat(new URL("../public/images/panshi-celestial-market.webp", import.meta.url)),
     stat(new URL("../public/fonts/panshi-display.woff2", import.meta.url)),
     stat(new URL("../public/fonts/OFL-Chiron-Sung-HK.txt", import.meta.url)),
+    stat(new URL("../studio/assets/remotion-public/studio/presenter/moheng-virtual-host.png", import.meta.url)),
+    stat(new URL("../studio/assets/remotion-public/studio/fonts/panshi-display.woff2", import.meta.url)),
+    readFile(new URL("../public/fonts/OFL-Chiron-Sung-HK.txt", import.meta.url), "utf8"),
+    readFile(new URL("../studio/assets/remotion-public/studio/fonts/OFL-Chiron-Sung-HK.txt", import.meta.url), "utf8"),
+    readFile(new URL("../node_modules/@fontsource/ibm-plex-mono/LICENSE", import.meta.url), "utf8"),
+    readFile(new URL("../studio/assets/remotion-public/studio/fonts/OFL-IBM-Plex-Mono.txt", import.meta.url), "utf8"),
   ]);
 
   assert.match(page, /CompanyExplorer/);
@@ -137,6 +149,7 @@ test("removes starter assets and keeps product-specific sources", async () => {
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.match(packageJson, /"name": "panshi-company-market-astrology"/);
   assert.match(packageJson, /"motion"/);
+  assert.match(packageJson, /--public-dir=studio\/assets\/remotion-public/);
   assert.match(nextConfig, /basePath:\s*APP_BASE_PATH/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton|site-creator-vinext-starter/);
   assert.match(heroInstrument, /from "motion\/react"/);
@@ -159,8 +172,13 @@ test("removes starter assets and keeps product-specific sources", async () => {
   assert.ok(heroImage.size > 200_000 && heroImage.size < 500_000);
   assert.ok(displayFont.size > 80_000 && displayFont.size < 250_000);
   assert.ok(fontLicense.size > 4_000);
+  assert.ok(remotionPresenter.size > 1_000_000);
+  assert.equal(remotionDisplayFont.size, displayFont.size);
+  assert.equal(remotionChironNotice, siteChironNotice);
+  assert.equal(remotionIbmNotice, packagedIbmNotice);
 
   await assert.rejects(access(new URL("app/_sites-preview", templateRoot)));
+  await assert.rejects(access(new URL("public/studio", templateRoot)));
   await assert.rejects(access(new URL("public/favicon.svg", templateRoot)));
   await assert.rejects(access(new URL(".openai/hosting.json", templateRoot)));
 });

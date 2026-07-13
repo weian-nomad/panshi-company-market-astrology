@@ -184,13 +184,58 @@ export function markIngestDay(market: Market, date: string, status: IngestStatus
 }
 
 /** "error" is deliberately NOT considered done — a failed day should be
- * retried on the next run, not silently skipped forever. */
-export function isIngestDayDone(market: Market, date: string): boolean {
+ * retried on the next run, not silently skipped forever. `retryNoTrading`
+ * lets the daily updater recover an old same-day `no-trading` marker. */
+export function isIngestDayDone(
+  market: Market,
+  date: string,
+  options: { retryNoTrading?: boolean } = {},
+): boolean {
   const conn = getMarketDb();
   const row = conn
     .prepare(`SELECT status FROM ingest_log WHERE market = ? AND date = ?`)
     .get(market, date) as { status: string } | undefined;
-  return row !== undefined && row.status !== "error";
+  if (row === undefined || row.status === "error") return false;
+  if (row.status === "no-trading" && options.retryNoTrading) return false;
+  return true;
+}
+
+export function getIngestCoverage(
+  market: Market,
+  throughDate: string,
+): { firstLoggedDate: string | null; latestCompletedDate: string | null } {
+  const conn = getMarketDb();
+  const row = conn
+    .prepare(
+      `SELECT
+         MIN(date) AS first_logged_date,
+         MAX(CASE WHEN status IN ('ok', 'no-trading') THEN date END) AS latest_completed_date
+       FROM ingest_log
+       WHERE market = ? AND date <= ?`,
+    )
+    .get(market, throughDate) as
+    | { first_logged_date: string | null; latest_completed_date: string | null }
+    | undefined;
+  return {
+    firstLoggedDate: row?.first_logged_date ?? null,
+    latestCompletedDate: row?.latest_completed_date ?? null,
+  };
+}
+
+export function getIngestStatuses(
+  market: Market,
+  fromDate: string,
+  throughDate: string,
+): Map<string, IngestStatus> {
+  const conn = getMarketDb();
+  const rows = conn
+    .prepare(
+      `SELECT date, status FROM ingest_log
+       WHERE market = ? AND date >= ? AND date <= ?
+       ORDER BY date ASC`,
+    )
+    .all(market, fromDate, throughDate) as Array<{ date: string; status: IngestStatus }>;
+  return new Map(rows.map((row) => [row.date, row.status]));
 }
 
 export function getIngestStats() {

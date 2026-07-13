@@ -1,0 +1,20 @@
+[Unit]
+Description=Nomad Panshi Studio automatic YouTube publish worker
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=panshi
+Group=panshi
+SupplementaryGroups=docker
+EnvironmentFile=/etc/panshi/studio.env
+LoadCredential=studio-publish.env:/etc/panshi/credentials/studio-publish.env
+ExecStartPre=-/usr/bin/docker rm --force panshi-studio-publish
+ExecStart=/usr/bin/docker run --rm --name panshi-studio-publish --env-file /etc/panshi/studio.env --env-file %d/studio-publish.env --volume ${PANSHI_DATA_DIR}:/app/runtime-data --volume ${PANSHI_STUDIO_DIR}:/app/var/panshi-studio ${PANSHI_STUDIO_IMAGE} npm exec -- tsx studio/commands/publish-ready.ts
+TimeoutStartSec=30min
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
