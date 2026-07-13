@@ -3,7 +3,7 @@ import { chmodSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync }
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { loadVaultKeys, writeVaultKey } from "@/studio/vault";
+import { loadVaultKeys, vaultKeyMatches, writeVaultKey } from "@/studio/vault";
 
 test("vault parser loads only requested keys without shell evaluation", () => {
   const root = mkdtempSync(join(tmpdir(), "panshi-vault-"));
@@ -47,14 +47,41 @@ test("vault writer atomically updates and removes one key", async () => {
   try {
     writeFileSync(path, "OTHER_KEY='retained'\nTEST_WRITE_KEY='old'\n", { mode: 0o600 });
     process.env.NOMAD_KEY_VAULT = path;
-    await writeVaultKey("TEST_WRITE_KEY", "new value");
+    const update = await writeVaultKey("TEST_WRITE_KEY", "new value");
+    assert.deepEqual(update, {
+      changed: true,
+      keyPresentBefore: true,
+      keyPresentAfter: true,
+    });
     delete process.env.TEST_WRITE_KEY;
     loadVaultKeys(["TEST_WRITE_KEY"]);
     assert.equal(process.env.TEST_WRITE_KEY, "new value");
+    assert.equal(await vaultKeyMatches("TEST_WRITE_KEY", "new value"), true);
     assert.match(readFileSync(path, "utf8"), /OTHER_KEY='retained'/u);
 
-    await writeVaultKey("TEST_WRITE_KEY", null);
+    await assert.rejects(
+      writeVaultKey("TEST_WRITE_KEY", null, {
+        requireExisting: true,
+        expectedValue: "wrong value",
+      }),
+      /does not match/,
+    );
+    assert.equal(await vaultKeyMatches("TEST_WRITE_KEY", "new value"), true);
+
+    const removal = await writeVaultKey("TEST_WRITE_KEY", null, {
+      requireExisting: true,
+      expectedValue: "new value",
+    });
+    assert.deepEqual(removal, {
+      changed: true,
+      keyPresentBefore: true,
+      keyPresentAfter: false,
+    });
     assert.doesNotMatch(readFileSync(path, "utf8"), /TEST_WRITE_KEY/u);
+    await assert.rejects(
+      writeVaultKey("TEST_WRITE_KEY", null, { requireExisting: true }),
+      /does not contain/,
+    );
     assert.equal(statSync(path).mode & 0o777, 0o600);
   } finally {
     if (originalPath === undefined) delete process.env.NOMAD_KEY_VAULT;

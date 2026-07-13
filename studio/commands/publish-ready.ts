@@ -2,6 +2,7 @@ import { getStudioConfig } from "@/studio/config";
 import {
   appendAudit,
   claimNextPublishableEdition,
+  deleteYouTubeAuthorizedData,
   getEdition,
   redactSensitivePublishText,
   setEditionPublishRetry,
@@ -10,7 +11,7 @@ import {
   setEditionUploaded,
   touchEditionUploadLease,
 } from "@/studio/store";
-import { uploadReadyEdition } from "@/studio/youtube";
+import { uploadReadyEdition, YouTubeGrantRevokedError } from "@/studio/youtube";
 import { loadVaultKeys } from "@/studio/vault";
 
 async function main() {
@@ -89,9 +90,24 @@ async function main() {
       postUploadWarnings: result.postUploadWarnings,
     }));
   } catch (error) {
+    const revoked = error instanceof YouTubeGrantRevokedError;
+    const authorizedDataDeletion = revoked ? deleteYouTubeAuthorizedData() : null;
     const message = redactSensitivePublishText(
       error instanceof Error ? error.message : "YouTube upload failed.",
     );
+    if (revoked) {
+      const current = getEdition(edition.tradeDate);
+      console.error(JSON.stringify({
+        status: current?.status ?? "quarantined",
+        tradeDate: edition.tradeDate,
+        errorType: error.name,
+        attempts: current?.publishAttempts ?? edition.publishAttempts,
+        retryAt: null,
+        authorizedDataDeleted: Boolean(authorizedDataDeletion),
+      }));
+      process.exitCode = 1;
+      return;
+    }
     const next = setEditionPublishRetry(edition.tradeDate, claimToken, message, {
       maxAttempts: config.publishMaxAttempts,
       baseDelayMs: config.publishRetryBaseSeconds * 1_000,
@@ -103,6 +119,7 @@ async function main() {
       errorType: error instanceof Error ? error.name : "UnknownError",
       attempts: current?.publishAttempts ?? edition.publishAttempts,
       retryAt: next?.status === "publish_retry" ? next.publishRetryAt : null,
+      authorizedDataDeleted: Boolean(authorizedDataDeletion),
     }));
     process.exitCode = 1;
   }

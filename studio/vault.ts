@@ -60,9 +60,41 @@ function shellQuote(value: string) {
   return `'${value.replaceAll("'", `'"'"'`)}'`;
 }
 
-/** Atomically writes or removes one allowlisted-style key without evaluating the vault. */
-export async function writeVaultKey(name: string, value: string | null) {
+function validateKeyName(name: string) {
   if (!/^[A-Z][A-Z0-9_]*$/u.test(name)) throw new Error("Vault key name is invalid.");
+}
+
+function assignedValues(source: string, name: string) {
+  const pattern = new RegExp(
+    `^\\s*(?:export\\s+)?${name}\\s*=\\s*(.*)$`,
+    "gmu",
+  );
+  return [...source.matchAll(pattern)].map((match) => decodeValue(match[1]));
+}
+
+/** Checks the effective stored value without returning or logging the secret. */
+export async function vaultKeyMatches(name: string, expectedValue: string) {
+  validateKeyName(name);
+  const path = vaultPath();
+  try {
+    const stats = await lstat(path);
+    if (stats.isSymbolicLink()) throw new Error("The key vault must not be a symbolic link.");
+    if (!stats.isFile()) throw new Error("The key vault path is not a regular file.");
+    const values = assignedValues(await readFile(path, "utf8"), name);
+    return values.length > 0 && values.at(-1) === expectedValue;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+    throw error;
+  }
+}
+
+/** Atomically writes or removes one allowlisted-style key without evaluating the vault. */
+export async function writeVaultKey(
+  name: string,
+  value: string | null,
+  options: { requireExisting?: boolean; expectedValue?: string } = {},
+) {
+  validateKeyName(name);
   if (value !== null && /[\r\n\0]/u.test(value)) {
     throw new Error("Vault values must be single-line text.");
   }
@@ -77,11 +109,24 @@ export async function writeVaultKey(name: string, value: string | null) {
     existing = await readFile(path, "utf8");
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-    if (value === null) return;
+    if (value === null && options.requireExisting) {
+      throw new Error("The configured key vault does not contain the required key.");
+    }
+    if (value === null) {
+      return { changed: false, keyPresentBefore: false, keyPresentAfter: false };
+    }
   }
 
+  const values = assignedValues(existing, name);
+  const keyPresentBefore = values.length > 0;
+  if (options.requireExisting && !keyPresentBefore) {
+    throw new Error("The configured key vault does not contain the required key.");
+  }
+  if (options.expectedValue !== undefined && values.at(-1) !== options.expectedValue) {
+    throw new Error("The configured key vault value does not match the active credential.");
+  }
   const assignmentPattern = new RegExp(
-    `^(?:export\\s+)?${name}\\s*=.*(?:\\r?\\n|$)`,
+    `^\\s*(?:export\\s+)?${name}\\s*=.*(?:\\r?\\n|$)`,
     "gmu",
   );
   const withoutAssignment = existing.replace(assignmentPattern, "");
@@ -90,7 +135,7 @@ export async function writeVaultKey(name: string, value: string | null) {
     : `${withoutAssignment}${withoutAssignment && !withoutAssignment.endsWith("\n") ? "\n" : ""}${name}=${shellQuote(value)}\n`;
   if (next === existing) {
     await chmod(path, 0o600);
-    return;
+    return { changed: false, keyPresentBefore, keyPresentAfter: value !== null };
   }
 
   const temporaryPath = `${path}.${process.pid}.${randomBytes(8).toString("hex")}.tmp`;
@@ -99,6 +144,7 @@ export async function writeVaultKey(name: string, value: string | null) {
     await chmod(temporaryPath, 0o600);
     await rename(temporaryPath, path);
     await chmod(path, 0o600);
+    return { changed: true, keyPresentBefore, keyPresentAfter: value !== null };
   } catch (error) {
     await unlink(temporaryPath).catch(() => undefined);
     throw error;

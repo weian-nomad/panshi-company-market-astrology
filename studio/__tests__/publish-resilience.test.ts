@@ -11,6 +11,7 @@ import {
 import {
   appendAudit,
   claimNextPublishableEdition,
+  deleteYouTubeAuthorizedData,
   getEdition,
   getStudioDb,
   listAudit,
@@ -20,6 +21,7 @@ import {
   setEditionUploadCompletion,
   setEditionUploaded,
   setEditionUploadSession,
+  updateEditionPublishingControls,
   type StoredEdition,
 } from "@/studio/store";
 import {
@@ -31,6 +33,7 @@ import {
 
 const root = mkdtempSync(join(tmpdir(), "panshi-publish-resilience-"));
 process.env.YOUTUBE_CHANNEL_ID = "UC-test-channel";
+process.env.YOUTUBE_VISIBILITY = "public";
 
 function useDatabase(name: string) {
   process.env.STUDIO_DB_PATH = join(root, `${name}.db`);
@@ -49,6 +52,9 @@ function editionInput(tradeDate: string) {
     thumbnailPath: "/tmp/thumbnail.png",
     publishAt: null,
     channelId: "UC-test-channel",
+    visibilityOverride: null,
+    requestedVisibility: null,
+    actualVisibility: null,
     legalReviewId: null,
     approvedAt: null,
     approvedBy: null,
@@ -67,6 +73,7 @@ test("claim, stale reclaim, and terminal writes are lease-safe", { concurrency: 
   const first = claimNextPublishableEdition({ now: base, maxAttempts: 5, staleAfterMs: 60_000 });
   assert.equal(first?.status, "uploading");
   assert.equal(first?.publishAttempts, 1);
+  assert.equal(first?.requestedVisibility, "public");
   assert.ok(first?.publishClaimToken);
   assert.equal(
     claimNextPublishableEdition({ now: base, maxAttempts: 5, staleAfterMs: 60_000 }),
@@ -101,12 +108,20 @@ test("claim, stale reclaim, and terminal writes are lease-safe", { concurrency: 
     null,
   );
 
-  const second = claimNextPublishableEdition({
-    now: new Date("2026-07-13T10:00:01.000Z"),
-    maxAttempts: 5,
-    staleAfterMs: 60_000,
-  });
+  const originalVisibility = process.env.YOUTUBE_VISIBILITY;
+  let second: StoredEdition | null = null;
+  try {
+    process.env.YOUTUBE_VISIBILITY = "private";
+    second = claimNextPublishableEdition({
+      now: new Date("2026-07-13T10:00:01.000Z"),
+      maxAttempts: 5,
+      staleAfterMs: 60_000,
+    });
+  } finally {
+    process.env.YOUTUBE_VISIBILITY = originalVisibility;
+  }
   assert.equal(second?.publishAttempts, 2);
+  assert.equal(second?.requestedVisibility, "public");
   assert.notEqual(second?.publishClaimToken, first?.publishClaimToken);
   assert.equal(second?.uploadSessionUrl, sessionUrl);
 
@@ -147,6 +162,7 @@ test("claim, stale reclaim, and terminal writes are lease-safe", { concurrency: 
     "public",
   );
   assert.equal(uploaded?.status, "scheduled");
+  assert.equal(uploaded?.actualVisibility, "public");
   assert.equal(uploaded?.uploadSessionUrl, null);
   assert.equal(uploaded?.uploadSize, null);
   assert.equal(uploaded?.publishClaimToken, null);
@@ -214,6 +230,68 @@ test("local generation failures remain repairable before publication", { concurr
   assert.equal(saveEdition(editionInput(tradeDate)).status, "ready");
 });
 
+test("operator controls are editable before upload and lock when publishing begins", { concurrency: false }, () => {
+  useDatabase("publishing-controls");
+  const tradeDate = "2026-07-18";
+  saveEdition(editionInput(tradeDate));
+  const updated = updateEditionPublishingControls({
+    tradeDate,
+    title: "調整後標題",
+    description: "調整後說明",
+    visibility: "unlisted",
+    actor: "test-operator",
+  });
+  assert.equal(updated.title, "調整後標題");
+  assert.equal(updated.description, "調整後說明");
+  assert.equal(updated.visibilityOverride, "unlisted");
+  assert.equal(updated.requestedVisibility, null);
+  assert.throws(
+    () => saveEdition(editionInput(tradeDate)),
+    /locked/,
+  );
+
+  const claimed = claimNextPublishableEdition({
+    now: new Date("2026-07-18T10:00:00.000Z"),
+    maxAttempts: 5,
+    staleAfterMs: 60_000,
+  });
+  assert.equal(claimed?.requestedVisibility, "unlisted");
+  assert.throws(
+    () => updateEditionPublishingControls({
+      tradeDate,
+      title: "不能再改",
+      description: "已進入上傳",
+      visibility: "private",
+      actor: "test-operator",
+    }),
+    /不能再變更/,
+  );
+});
+
+test("OAuth revocation deletes authorized identifiers and stops queued uploads", { concurrency: false }, () => {
+  useDatabase("authorized-data-deletion");
+  const tradeDate = "2026-07-19";
+  saveEdition(editionInput(tradeDate));
+  assert.equal(claimNextPublishableEdition({
+    now: new Date("2026-07-19T10:00:00.000Z"),
+    maxAttempts: 5,
+    staleAfterMs: 60_000,
+  })?.requestedVisibility, "public");
+  appendAudit(tradeDate, "authorized-data-probe", "test", { youtubeVideoId: "video-id" });
+  const deletion = deleteYouTubeAuthorizedData();
+  const edition = getEdition(tradeDate);
+  assert.equal(deletion.editionsUpdated, 1);
+  assert.ok(deletion.auditRowsDeleted >= 1);
+  assert.equal(edition?.status, "quarantined");
+  assert.equal(edition?.channelId, null);
+  assert.equal(edition?.visibilityOverride, null);
+  assert.equal(edition?.requestedVisibility, null);
+  assert.equal(edition?.actualVisibility, null);
+  assert.equal(edition?.youtubeVideoId, null);
+  assert.equal(edition?.uploadSessionUrl, null);
+  assert.deepEqual(listAudit(tradeDate), []);
+});
+
 test("queue claim searches SQLite directly beyond the newest 30 rows", { concurrency: false }, () => {
   useDatabase("deep-queue");
   const dates = Array.from({ length: 35 }, (_, index) => {
@@ -262,9 +340,15 @@ test("legacy SQLite databases migrate without losing queued editions", { concurr
   const migrated = getEdition("2026-07-15");
   assert.equal(migrated?.publishAttempts, 0);
   assert.equal(migrated?.uploadSessionUrl, null);
+  assert.equal(migrated?.visibilityOverride, null);
+  assert.equal(migrated?.requestedVisibility, null);
+  assert.equal(migrated?.actualVisibility, null);
   const columns = getStudioDb().prepare("PRAGMA table_info(studio_editions)").all() as Array<{ name: string }>;
   assert.ok(columns.some((column) => column.name === "upload_session_url"));
   assert.ok(columns.some((column) => column.name === "publish_claim_token"));
+  assert.ok(columns.some((column) => column.name === "visibility_override"));
+  assert.ok(columns.some((column) => column.name === "requested_visibility"));
+  assert.ok(columns.some((column) => column.name === "actual_visibility"));
   assert.equal(
     claimNextPublishableEdition({
       now: new Date("2026-07-15T10:00:00.000Z"),
@@ -272,6 +356,22 @@ test("legacy SQLite databases migrate without losing queued editions", { concurr
       staleAfterMs: 60_000,
     })?.status,
     "uploading",
+  );
+  getStudioDb().prepare(
+    "UPDATE studio_editions SET actual_visibility = 'corrupt' WHERE trade_date = ?",
+  ).run("2026-07-15");
+  assert.throws(() => getEdition("2026-07-15"), /unsupported YouTube visibility/);
+});
+
+test("invalid persisted visibility fails closed instead of defaulting to public", { concurrency: false }, () => {
+  useDatabase("invalid-persisted-visibility");
+  const tradeDate = "2026-07-21";
+  saveEdition(editionInput(tradeDate));
+  assert.throws(
+    () => getStudioDb().prepare(
+      "UPDATE studio_editions SET visibility_override = 'corrupt' WHERE trade_date = ?",
+    ).run(tradeDate),
+    /constraint/i,
   );
 });
 

@@ -316,6 +316,11 @@
   gap: 14px;
 }
 
+.metadataForm {
+  display: grid;
+  gap: 14px;
+}
+
 .metadataSection label,
 .approvalForm > label:not(.checkbox),
 .quarantineForm label {
@@ -326,6 +331,8 @@
 }
 
 .metadataSection textarea,
+.metadataSection input,
+.metadataSection select,
 .approvalForm input,
 .quarantineForm input,
 .loginForm input {
@@ -336,11 +343,31 @@
   color: #f4f0e6;
 }
 
-.metadataSection textarea {
+.metadataSection textarea,
+.metadataSection input,
+.metadataSection select {
   padding: 12px 14px;
   font-family: var(--sans);
   line-height: 1.6;
+}
+
+.metadataSection textarea {
   resize: vertical;
+}
+
+.metadataSection select {
+  min-height: 46px;
+}
+
+.metadataForm button {
+  min-height: 46px;
+  padding: 10px 16px;
+  border: 1px solid #d5bd86;
+  border-radius: 4px;
+  background: #ad8b4f;
+  color: #141512;
+  font-weight: 720;
+  cursor: pointer;
 }
 
 .approvalSection {
