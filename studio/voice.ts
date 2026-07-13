@@ -4,6 +4,18 @@ import { getStudioConfig } from "@/studio/config";
 
 const SPEECH_ENDPOINT = "https://api.openai.com/v1/audio/speech";
 
+export const STUDIO_VOICE_DIRECTION = [
+  "以自然的臺灣華語朗讀。",
+  "成年男性，中低音、近距離收音，胸腔共鳴厚而乾淨，帶一點氣聲與克制的微笑。",
+  "性感來自沉著、自信和留白；不要刻意壓嗓，也不要油膩。",
+  "像深夜財經節目的主持人：第一句稍輕、稍慢，把人留下。",
+  "股票代號逐字念；公司名、價格、正負號與百分比必須咬字清楚。",
+  "重要數字前後各留半拍，轉折句略降速，句尾自然下沉。",
+  "每一到兩句要有細微節奏與情緒變化。",
+  "避免新聞播報腔、廣告腔、預言腔、整段耳語、鼻音、聲帶摩擦音與機械式等速。",
+  "保持乾聲，不加混響或背景音。",
+].join(" ");
+
 class NonRetryableSpeechError extends Error {}
 
 function requiredApiKey() {
@@ -27,14 +39,10 @@ async function speechRequest(text: string) {
         body: JSON.stringify({
           model: config.ttsModel,
           voice: config.ttsVoice,
+          speed: config.ttsSpeed,
           input: text,
           response_format: "wav",
-          instructions: [
-            "使用自然、沉著的臺灣華語。",
-            "語速俐落但不催促，像資料編輯在口述研究札記。",
-            "股票代號逐字念，數字與百分比清楚停頓。",
-            "不營造權威預言、急迫感或招攬語氣。",
-          ].join(" "),
+          instructions: STUDIO_VOICE_DIRECTION,
         }),
       });
 

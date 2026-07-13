@@ -11,7 +11,7 @@ export const EDITORIAL_CATEGORIES = [
   "volume-anomaly",
   "dense-aspects",
   "historical-divergence",
-  "rare-sample",
+  "today-history-contrast",
 ] as const;
 
 export type EditorialCategory = (typeof EDITORIAL_CATEGORIES)[number];
@@ -21,7 +21,7 @@ export const EDITORIAL_CATEGORY_LABELS: Record<EditorialCategory, string> = {
   "volume-anomaly": "量能異常",
   "dense-aspects": "相位密集",
   "historical-divergence": "歷史分歧",
-  "rare-sample": "稀有組態",
+  "today-history-contrast": "今昔反差",
 };
 
 export type DailyStockFacts = {
@@ -52,7 +52,7 @@ export type SalienceMetric =
   | "volume-ratio-to-20-session-median"
   | "active-aspect-count"
   | "interquartile-spread"
-  | "exact-sample-count";
+  | "today-to-historical-median-gap";
 
 export type DailySelectionItem = {
   category: EditorialCategory;
@@ -70,6 +70,12 @@ export type FiveItems<T> = [T, T, T, T, T];
 export type DailyFiveSelection = {
   date: string;
   policy: "neutral-editorial-salience";
+  evidencePolicy: {
+    studyMatch: "exact-active-configuration";
+    activeStudyPrecedence: ["publishable-completeness", "sample-size", "orb", "signature"];
+    minimumSampleSize: 5;
+    requiresUpAndDownCases: true;
+  };
   items: FiveItems<DailySelectionItem>;
   diversification: {
     recentSymbolsConsidered: string[];

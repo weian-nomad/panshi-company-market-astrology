@@ -1,4 +1,5 @@
 import type { InquiryStudy } from "@/lib/inquiry-types";
+import { studyDirectionCounts } from "@/studio/study-quality";
 import {
   type DailyContentPackage,
   type DailyFiveSelection,
@@ -56,6 +57,18 @@ function interquartileSpread(study: InquiryStudy | null) {
   return Number((q3 - q1).toFixed(1));
 }
 
+function descriptiveStudy(item: DailySelectionItem) {
+  const study = item.facts.study;
+  if (!study || study.status !== "descriptive-only") {
+    throw new Error(`${item.facts.symbol} 沒有可發布的描述性研究。`);
+  }
+  return study;
+}
+
+function signedDailyMovement(item: DailySelectionItem) {
+  return formatSignedPercent(item.facts.session.dailyChangePercent);
+}
+
 export function buildMarketLine(item: DailySelectionItem) {
   const { facts, category } = item;
   const prefix = `${facts.symbol} ${facts.shortName}，收盤 ${formatPlainNumber(facts.session.close)} 元，單日變動 ${formatSignedPercent(facts.session.dailyChangePercent)}`;
@@ -71,8 +84,8 @@ export function buildMarketLine(item: DailySelectionItem) {
       const spread = interquartileSpread(facts.study);
       return `${prefix}；同組態四分位跨度 ${spread?.toFixed(1) ?? "無法計算"} 個百分點，列入歷史分歧。`;
     }
-    case "rare-sample":
-      return `${prefix}；同組態只有 ${facts.study?.statistics.sampleSize ?? 0} 筆完整樣本，列入稀有組態。`;
+    case "today-history-contrast":
+      return `${prefix}；同組態 D+${facts.study?.horizon ?? 20} 中位 ${formatSignedPercent(facts.study?.statistics.medianReturn ?? 0)}，列入今昔反差。`;
   }
 }
 
@@ -109,7 +122,8 @@ export function buildHistoryLine(study: InquiryStudy | null) {
     return `過去同組態有 ${stats.sampleSize} 筆樣本，但統計欄位不完整；這段不做分布解讀。`;
   }
 
-  return `過去同組態有 ${stats.sampleSize} 筆完整樣本。往後 ${study.horizon} 個交易日的未還原收盤價變動，中位數 ${formatSignedPercent(stats.medianReturn as number)}，四分位區間 ${formatSignedPercent(stats.q1Return as number)} 至 ${formatSignedPercent(stats.q3Return as number)}，正變動 ${stats.positiveCount} 筆、零變動 ${stats.zeroCount} 筆；期間最不利變動中位數 ${formatSignedPercent(stats.medianAdverseMove as number)}，最差 ${formatSignedPercent(stats.worstAdverseMove as number)}。`;
+  const directions = studyDirectionCounts(study);
+  return `過去同組態有 ${stats.sampleSize} 筆完整樣本。往後 ${study.horizon} 個交易日的未還原收盤價變動，中位數 ${formatSignedPercent(stats.medianReturn as number)}，四分位區間 ${formatSignedPercent(stats.q1Return as number)} 至 ${formatSignedPercent(stats.q3Return as number)}，上行 ${directions.positive} 筆、下行 ${directions.negative} 筆、持平 ${directions.zero} 筆；期間最不利變動中位數 ${formatSignedPercent(stats.medianAdverseMove as number)}，最差 ${formatSignedPercent(stats.worstAdverseMove as number)}。`;
 }
 
 export function buildCoverageLine(item: DailySelectionItem) {
@@ -123,10 +137,13 @@ export function buildCoverageLine(item: DailySelectionItem) {
 function compactConfigurationLine(item: DailySelectionItem) {
   const transit = primaryTransit(item);
   if (!transit) return `3° 內沒有可讀取的主要相位。`;
-  return `現在是行運${transit.transitBodyZh}${transit.aspectZh}本命${transit.natalBodyZh}，容許度 ${transit.orb.toFixed(2)}°。`;
+  return `盤上，${transit.transitBodyZh}與本命${transit.natalBodyZh}是${transit.aspectZh}。`;
 }
 
-function compactHistoryLine(study: InquiryStudy | null) {
+function compactHistoryLine(
+  study: InquiryStudy | null,
+  focus: "median" | "quartiles" | "counts" = "median",
+) {
   if (!study) return `同盤資料不足，不解讀分布。`;
   const stats = study.statistics;
   if (study.status === "no-sample" || stats.sampleSize === 0) {
@@ -138,7 +155,13 @@ function compactHistoryLine(study: InquiryStudy | null) {
   if (!completeDescriptiveStatistics(study)) {
     return `同盤 ${stats.sampleSize} 筆，但統計欄位不完整，本期不發布。`;
   }
-  return `同盤 ${stats.sampleSize} 筆；D+${study.horizon} 中位 ${formatSignedPercent(stats.medianReturn as number)}，四分位 ${formatSignedPercent(stats.q1Return as number)} 至 ${formatSignedPercent(stats.q3Return as number)}，正變動 ${stats.positiveCount} 筆。`;
+  const directions = studyDirectionCounts(study);
+  const result = `同盤 ${stats.sampleSize} 次，D+${study.horizon} 漲 ${directions.positive}、跌 ${directions.negative}`;
+  if (focus === "counts") return `${result}。`;
+  if (focus === "quartiles") {
+    return `${result}；中間一半在 ${formatSignedPercent(stats.q1Return as number)} 到 ${formatSignedPercent(stats.q3Return as number)}。`;
+  }
+  return `${result}；中位 ${formatSignedPercent(stats.medianReturn as number)}。`;
 }
 
 function compactCategoryCue(item: DailySelectionItem) {
@@ -153,16 +176,101 @@ function compactCategoryCue(item: DailySelectionItem) {
       const spread = interquartileSpread(item.facts.study);
       return `同盤四分位跨度 ${spread?.toFixed(1) ?? "無法計算"} 個百分點。`;
     }
-    case "rare-sample":
-      return "";
+    case "today-history-contrast":
+      return `同盤 D+${item.facts.study?.horizon ?? 20} 中位 ${formatSignedPercent(item.facts.study?.statistics.medianReturn ?? 0)}。`;
   }
 }
 
 /** Concise voice-over; the detailed fields remain available for cards and review. */
 export function buildNarrationLine(item: DailySelectionItem) {
   const facts = item.facts;
-  const market = `收盤 ${formatPlainNumber(facts.session.close)} 元，日變動 ${formatSignedPercent(facts.session.dailyChangePercent)}。`;
-  return `${item.categoryLabel}，${facts.symbol} ${facts.shortName}。${market}${compactCategoryCue(item)}${compactConfigurationLine(item)}${compactHistoryLine(facts.study)}`;
+  const market = `${facts.shortName} ${facts.symbol}，日線 ${signedDailyMovement(item)}。`;
+  const configuration = compactConfigurationLine(item);
+  switch (item.category) {
+    case "market-move":
+      return `第一眼，市場先動了。${market}${configuration}${compactHistoryLine(facts.study)}`;
+    case "volume-anomaly": {
+      const volumeCue = (facts.session.volumeRatio20SessionMedian ?? 1) >= 1
+        ? "量突然醒了。"
+        : "量突然靜了。";
+      return `${volumeCue}${market}${compactCategoryCue(item)}${configuration}${compactHistoryLine(facts.study, "quartiles")}`;
+    }
+    case "dense-aspects":
+      return `這張盤，不只一條線在拉扯。${market}${compactCategoryCue(item)}${configuration}${compactHistoryLine(facts.study)}`;
+    case "historical-divergence":
+      return `同一個盤，歷史卻裂成兩邊。${market}${configuration}${compactHistoryLine(facts.study, "quartiles")}`;
+    case "today-history-contrast": {
+      const study = descriptiveStudy(item);
+      const median = study.statistics.medianReturn as number;
+      const directionProduct = facts.session.dailyChangePercent * median;
+      const comparison = directionProduct === 0
+        ? `今日日線和同盤 D+${study.horizon} 中位，其中一個期間持平。`
+        : directionProduct < 0
+          ? `今日日線和同盤 D+${study.horizon} 中位，一正一負。`
+          : `今日日線和同盤 D+${study.horizon} 中位，同向不同幅。`;
+      return `最後看兩個期間。${market}${comparison}${configuration}${compactHistoryLine(facts.study, "counts")}`;
+    }
+  }
+}
+
+function hookGap(item: DailySelectionItem) {
+  return Math.abs(
+    item.facts.session.dailyChangePercent
+      - (item.facts.study?.statistics.medianReturn ?? item.facts.session.dailyChangePercent),
+  );
+}
+
+function hookTieBreak(a: DailySelectionItem, b: DailySelectionItem) {
+  return hookGap(b) - hookGap(a) || a.facts.symbol.localeCompare(b.facts.symbol);
+}
+
+/** Selects the strongest fact-led opening without inventing a forecast. */
+export function buildHook(selection: DailyFiveSelection) {
+  const opposite = selection.items
+    .filter((item) => (
+      item.facts.study !== null
+      && item.facts.session.dailyChangePercent * (item.facts.study.statistics.medianReturn ?? 0) < 0
+    ))
+    .sort(hookTieBreak)[0];
+  if (opposite) {
+    const study = descriptiveStudy(opposite);
+    return `${opposite.facts.shortName}，兩個期間一正一負：今日日線 ${signedDailyMovement(opposite)}；同盤 D+${study.horizon} 中位 ${formatSignedPercent(study.statistics.medianReturn as number)}。`;
+  }
+
+  const volume = selection.items
+    .filter((item) => (
+      item.category === "volume-anomaly"
+      && (item.facts.session.volumeRatio20SessionMedian ?? 0) >= 1.5
+      && Math.abs(item.facts.session.dailyChangePercent) <= 2
+    ))
+    .sort((a, b) => (
+      (b.facts.session.volumeRatio20SessionMedian ?? 0)
+        - (a.facts.session.volumeRatio20SessionMedian ?? 0)
+      || a.facts.symbol.localeCompare(b.facts.symbol)
+    ))[0];
+  if (volume) {
+    return `${volume.facts.shortName}量放大 ${(volume.facts.session.volumeRatio20SessionMedian as number).toFixed(1)} 倍，日線只動 ${signedDailyMovement(volume)}。這個反差，值得先看。`;
+  }
+
+  const divergence = [...selection.items].sort((a, b) => {
+    const aSpread = interquartileSpread(a.facts.study) ?? 0;
+    const bSpread = interquartileSpread(b.facts.study) ?? 0;
+    return bSpread - aSpread || a.facts.symbol.localeCompare(b.facts.symbol);
+  })[0];
+  const divergenceStudy = descriptiveStudy(divergence);
+  if ((interquartileSpread(divergenceStudy) ?? 0) > 0) {
+    return `同一個盤，中間一半從 ${formatSignedPercent(divergenceStudy.statistics.q1Return as number)} 裂到 ${formatSignedPercent(divergenceStudy.statistics.q3Return as number)}。今天先看 ${divergence.facts.shortName}。`;
+  }
+
+  const dense = selection.items.find((item) => item.category === "dense-aspects");
+  if (dense) {
+    return `${dense.facts.transits.length} 組主要相位，同時擠進 3°。${dense.facts.shortName} 日線 ${signedDailyMovement(dense)}。`;
+  }
+
+  const market = selection.items[0];
+  const study = descriptiveStudy(market);
+  const directions = studyDirectionCounts(study);
+  return `今天動得最大的是 ${market.facts.shortName}，日線 ${signedDailyMovement(market)}；同盤漲 ${directions.positive} 次、跌 ${directions.negative} 次。`;
 }
 
 function buildSegment(item: DailySelectionItem): DailyScriptSegment {
@@ -191,14 +299,14 @@ export function buildDailyScript(
   const appName = options.appName?.trim() || DEFAULT_APP_NAME;
   const appUrl = options.appUrl?.trim() || DEFAULT_APP_URL;
   const dateLabel = formatDateZh(selection.date);
-  const hostDisclosure = `我是 AI 虛擬觀測員${hostName}。以下由當日行情與盤勢問盤資料生成。`;
-  const hook = `五檔股票，五種入選理由。把今天的盤，放回歷史裡看。`;
+  const hostDisclosure = `我是 AI 虛擬觀測員${hostName}，內容由當日行情與盤勢問盤資料生成。`;
+  const hook = buildHook(selection);
   const priceBasisLine = `資料截至 ${dateLabel}；價格皆為未還原收盤價，不含股息與除權息調整。`;
   const segments = selection.items.map(buildSegment) as FiveItems<DailyScriptSegment>;
-  const boundaryLine = `這是財經文化研究，不是投資建議，不提供買賣訊號。`;
-  const ctaLine = `完整案例、反例與資料缺口，到${appName}搜尋股票代號：${appUrl}`;
+  const boundaryLine = `這是財經文化研究，不是投資建議，也不提供買賣訊號。`;
+  const ctaLine = `想看是哪幾次？到${appName}搜尋畫面上的股票代號：${appUrl}`;
   const title = `${dateLabel}｜今日五盤｜${selection.items.map((item) => `${item.facts.symbol} ${item.facts.shortName}`).join("・")}`;
-  const fullNarration = [hostDisclosure, hook, priceBasisLine, ...segments.map((segment) => segment.narration), boundaryLine, ctaLine].join("\n");
+  const fullNarration = [hook, hostDisclosure, priceBasisLine, ...segments.map((segment) => segment.narration), ctaLine, boundaryLine].join("\n");
   const categoryIndex = selection.items.map((item) => `${item.categoryLabel}｜${item.facts.symbol} ${item.facts.shortName}`).join("\n");
   const coverageIndex = segments.map((segment) => `${segment.symbol}｜${segment.coverageLine}`).join("\n");
   const researchLinks = selection.items

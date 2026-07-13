@@ -2,10 +2,17 @@ import {
   buildConfigurationLine,
   buildCoverageLine,
   buildHistoryLine,
+  buildHook,
   buildMarketLine,
   buildNarrationLine,
 } from "@/studio/script";
 import { isEligibleForCategory, signatureForCandidate } from "@/studio/selection";
+import {
+  hasCompleteDescriptiveStatistics,
+  hasConsistentStudyStatistics,
+  isPublishableStudy,
+  studyDirectionCounts,
+} from "@/studio/study-quality";
 import {
   EDITORIAL_CATEGORIES,
   EDITORIAL_CATEGORY_LABELS,
@@ -187,6 +194,7 @@ function supportedNumbers(content: DailyContentPackage) {
     addNumber(allowed, study.horizon);
     addNumber(allowed, study.minimumDescriptiveSample);
     Object.values(study.statistics).forEach((value) => addNumber(allowed, value));
+    addNumber(allowed, studyDirectionCounts(study).negative);
     [
       study.statistics.medianReturn,
       study.statistics.q1Return,
@@ -254,15 +262,22 @@ function validateStudy(facts: DailyStockFacts, index: number, errors: ContentVal
     errors.push(issue("study-status-mismatch", path, "樣本狀態與實際樣本數不一致。"));
   }
   if (study.status === "descriptive-only") {
-    const required = [
-      stats.medianReturn,
-      stats.q1Return,
-      stats.q3Return,
-      stats.medianAdverseMove,
-      stats.worstAdverseMove,
-    ];
-    if (required.some((value) => value === null || !Number.isFinite(value))) {
+    if (!hasCompleteDescriptiveStatistics(study)) {
       errors.push(issue("incomplete-descriptive-statistics", path, "達描述門檻時，中位數、四分位與不利變動不能缺值。"));
+    }
+  }
+  if (!hasConsistentStudyStatistics(study)) {
+    errors.push(issue("study-statistics-mismatch", path, "歷史案例與中位數、四分位或不利變動統計不一致。"));
+  }
+  if (study.status !== "descriptive-only" || stats.sampleSize < study.minimumDescriptiveSample) {
+    errors.push(issue("insufficient-publishable-study", path, "每日影片只接受達描述門檻的歷史研究。"));
+  } else {
+    const directions = studyDirectionCounts(study);
+    if (directions.positive === 0 || directions.negative === 0) {
+      errors.push(issue("one-sided-publishable-study", path, "每日影片的歷史樣本必須同時包含上行與下行案例。"));
+    }
+    if (!isPublishableStudy(study)) {
+      errors.push(issue("invalid-publishable-study", path, "每日影片的樣本、方向計數與描述統計必須完整一致。"));
     }
   }
   if (facts.coverage.from && facts.coverage.to) {
@@ -321,6 +336,13 @@ function validateScriptStructure(content: DailyContentPackage, errors: ContentVa
   }
   if (!script.boundaryLine.includes("不是投資建議") || !script.boundaryLine.includes("不提供買賣訊號")) {
     errors.push(issue("missing-investment-boundary", "script.boundaryLine", "結尾必須清楚說明非投資建議且不提供買賣訊號。"));
+  }
+  const expectedHook = buildHook(selection);
+  if (script.hook !== expectedHook) {
+    errors.push(issue("hook-fact-mismatch", "script.hook", "開場鉤子必須逐字對應本期選片與正確期間。"));
+  }
+  if (!script.fullNarration.includes(script.hook)) {
+    errors.push(issue("missing-hook", "script.fullNarration", "完整旁白必須包含本期開場鉤子。"));
   }
   if (script.fullNarration.length >= 900) {
     errors.push(issue("voiceover-too-long", "script.fullNarration", "精簡口播必須少於 900 字元；完整涵蓋與統計保留在審稿欄位與貼文。"));
@@ -389,6 +411,15 @@ export function validateDailyPackage(
   if (selection.policy !== "neutral-editorial-salience") {
     errors.push(issue("non-neutral-policy", "selection.policy", "選片政策必須是中性編輯顯著性。"));
   }
+  if (
+    selection.evidencePolicy.studyMatch !== "exact-active-configuration"
+    || selection.evidencePolicy.minimumSampleSize !== 5
+    || selection.evidencePolicy.requiresUpAndDownCases !== true
+    || selection.evidencePolicy.activeStudyPrecedence.join("|")
+      !== "publishable-completeness|sample-size|orb|signature"
+  ) {
+    errors.push(issue("invalid-evidence-policy", "selection.evidencePolicy", "每日影片必須使用固定的精確組態擇優與雙向樣本門檻。"));
+  }
   if (selection.items.length !== 5 || content.script.segments.length !== 5) {
     errors.push(issue("wrong-item-count", "selection.items", "每個交易日必須是一支、五檔的今日五盤。"));
   }
@@ -400,7 +431,7 @@ export function validateDailyPackage(
     new Set(categories).size !== 5
     || EDITORIAL_CATEGORIES.some((category) => !categories.includes(category))
   ) {
-    errors.push(issue("duplicate-or-missing-category", "selection.items", "五檔必須分屬市場異動、量能異常、相位密集、歷史分歧與稀有組態。"));
+    errors.push(issue("duplicate-or-missing-category", "selection.items", "五檔必須分屬市場異動、量能異常、相位密集、歷史分歧與今昔反差。"));
   }
 
   selection.items.forEach((item, index) => {

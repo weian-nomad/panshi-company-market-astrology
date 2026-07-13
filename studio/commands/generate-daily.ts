@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
-import { buildDailyCandidates, getLatestMarketTradeDate } from "@/studio/facts";
+import { createDailyCandidatePool, getLatestMarketTradeDate } from "@/studio/facts";
 import { renderDailyVideo } from "@/studio/render";
 import { buildDailyContentPackage } from "@/studio/script";
-import { selectDailyFive } from "@/studio/selection";
+import { DailySelectionUnavailableError, selectDailyFive } from "@/studio/selection";
 import {
   getEdition,
   isEditionGenerationLocked,
@@ -49,13 +49,19 @@ function currentConfiguration(content: DailyContentPackage, index: number) {
     : null;
 }
 
-function manifestFor(content: DailyContentPackage, render: Awaited<ReturnType<typeof renderDailyVideo>>) {
+function manifestFor(
+  content: DailyContentPackage,
+  render: Awaited<ReturnType<typeof renderDailyVideo>>,
+  shortlistSizeUsed: number,
+) {
   return {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
     series: content.script.series,
     contentClassification: content.script.contentClassification,
     selectionPolicy: content.selection.policy,
+    evidencePolicy: content.selection.evidencePolicy,
+    shortlistSizeUsed,
     aiHost: {
       name: content.script.host.name,
       disclosed: content.script.hostDisclosure,
@@ -145,12 +151,29 @@ async function main() {
 
   try {
     const config = getStudioConfig();
-    const candidates = buildDailyCandidates(tradeDate, { appBaseUrl: `${config.siteUrl}/` });
-    const selection = selectDailyFive({
-      date: tradeDate,
-      candidates,
-      recentSymbols: recentSymbols(),
+    const shortlistTiers = [60, 100, 200] as const;
+    const candidatePool = createDailyCandidatePool(tradeDate, {
+      appBaseUrl: `${config.siteUrl}/`,
     });
+    let selection: ReturnType<typeof selectDailyFive> | null = null;
+    let shortlistSizeUsed: number = shortlistTiers.at(-1) as number;
+    let selectionError: DailySelectionUnavailableError | null = null;
+    for (const shortlistSize of shortlistTiers) {
+      const candidates = candidatePool.build(shortlistSize);
+      try {
+        selection = selectDailyFive({
+          date: tradeDate,
+          candidates,
+          recentSymbols: recentSymbols(),
+        });
+        shortlistSizeUsed = shortlistSize;
+        break;
+      } catch (error) {
+        if (!(error instanceof DailySelectionUnavailableError)) throw error;
+        selectionError = error;
+      }
+    }
+    if (!selection) throw selectionError || new Error("No evidence-rich daily selection is available.");
     const content = buildDailyContentPackage(selection, { appUrl: `${config.siteUrl}/` });
     const validation = validateDailyPackage(content, { expectedDate: tradeDate });
     if (!validation.valid) {
@@ -164,7 +187,7 @@ async function main() {
       status: "ready",
       title: content.script.title,
       description,
-      manifest: manifestFor(content, render),
+      manifest: manifestFor(content, render, shortlistSizeUsed),
       qc: render.qc as unknown as Record<string, unknown>,
       contentHash: render.contentHash,
       videoPath: render.videoPath,
@@ -186,6 +209,7 @@ async function main() {
       status: edition.status,
       tradeDate,
       symbols: content.selection.items.map((item) => item.facts.symbol),
+      shortlistSizeUsed,
       durationSeconds: render.qc.durationSeconds,
       contentHash: render.contentHash,
       publicationMode: config.publicationMode,

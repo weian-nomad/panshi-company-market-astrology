@@ -23,6 +23,16 @@ function positiveInteger(name: string, fallback: number) {
   return value;
 }
 
+function boundedNumber(name: string, fallback: number, minimum: number, maximum: number) {
+  const raw = process.env[name]?.trim();
+  if (!raw) return fallback;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < minimum || value > maximum) {
+    throw new Error(`${name} must be a number from ${minimum} to ${maximum}.`);
+  }
+  return value;
+}
+
 export function getStudioConfig() {
   const youtubeVisibility = (process.env.YOUTUBE_VISIBILITY || "public") as YouTubeVisibility;
   if (!(["public", "unlisted", "private"] as const).includes(youtubeVisibility)) {
@@ -52,7 +62,8 @@ export function getStudioConfig() {
       || (process.platform === "darwin" && existsSync(MACOS_CHROME) ? MACOS_CHROME : null),
     remotionConcurrency: positiveInteger("REMOTION_CONCURRENCY", 2),
     ttsModel: process.env.STUDIO_TTS_MODEL || "gpt-4o-mini-tts",
-    ttsVoice: process.env.STUDIO_TTS_VOICE || "marin",
+    ttsVoice: process.env.STUDIO_TTS_VOICE || "onyx",
+    ttsSpeed: boundedNumber("STUDIO_TTS_SPEED", 0.96, 0.25, 4),
     channelId: process.env.YOUTUBE_CHANNEL_ID?.trim() || null,
     youtubeRegion: process.env.YOUTUBE_REGION || "TW",
     youtubeCategoryName: process.env.YOUTUBE_CATEGORY_NAME || "Education",

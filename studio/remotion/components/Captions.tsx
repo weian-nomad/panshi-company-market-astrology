@@ -1,15 +1,14 @@
-import { createTikTokStyleCaptions, type TikTokPage } from "@remotion/captions";
-import { useMemo } from "react";
-import { AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, interpolate, Sequence, useCurrentFrame, useVideoConfig } from "remotion";
 import { COLORS, FONTS } from "../tokens";
 import type { SerializedCaptionToken } from "../types";
 
-const PAGE_MS = 1180;
-
-function CaptionPage({ page }: { page: TikTokPage }) {
+function CaptionPage({ text }: { text: string }) {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const absoluteTimeMs = page.startMs + (frame / fps) * 1000;
+  const enter = interpolate(frame, [0, 4], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const parts = text.trim().split(/([+-]?\d+(?:\.\d+)?%?|D\+\d+|[A-Z]{2,})/gu).filter(Boolean);
 
   return (
     <AbsoluteFill style={{ justifyContent: "flex-end", padding: "0 92px 226px 100px", pointerEvents: "none" }}>
@@ -27,19 +26,18 @@ function CaptionPage({ page }: { page: TikTokPage }) {
           lineHeight: 1.35,
           letterSpacing: "0.02em",
           whiteSpace: "pre-wrap",
+          opacity: enter,
+          transform: `translateY(${(1 - enter) * 12}px)`,
         }}
       >
-        {page.tokens.map((token, index) => {
-          const active = token.fromMs <= absoluteTimeMs && token.toMs > absoluteTimeMs;
-          return (
-            <span
-              key={`${token.fromMs}-${index}`}
-              style={{ color: active ? COLORS.brass : COLORS.paper }}
-            >
-              {token.text}
-            </span>
-          );
-        })}
+        {parts.map((part, index) => (
+          <span
+            key={`${part}-${index}`}
+            style={{ color: /^(?:[+-]?\d|D\+|[A-Z]{2,})/u.test(part) ? COLORS.brass : COLORS.paper }}
+          >
+            {part}
+          </span>
+        ))}
       </div>
     </AbsoluteFill>
   );
@@ -47,19 +45,15 @@ function CaptionPage({ page }: { page: TikTokPage }) {
 
 export function CaptionTrack({ tokens, durationFrames }: { tokens: SerializedCaptionToken[]; durationFrames: number }) {
   const { fps } = useVideoConfig();
-  const { pages } = useMemo(
-    () => createTikTokStyleCaptions({ captions: tokens, combineTokensWithinMilliseconds: PAGE_MS }),
-    [tokens],
-  );
 
   return (
     <AbsoluteFill>
-      {pages.map((page, index) => {
-        const nextPage = pages[index + 1] ?? null;
-        const startFrame = Math.max(0, Math.round((page.startMs / 1000) * fps));
-        const naturalEnd = Math.round(((page.startMs + page.durationMs) / 1000) * fps);
-        const nextPageStart = nextPage
-          ? Math.round((nextPage.startMs / 1000) * fps)
+      {tokens.map((token, index) => {
+        const nextToken = tokens[index + 1] ?? null;
+        const startFrame = Math.max(0, Math.round((token.startMs / 1000) * fps));
+        const naturalEnd = Math.round((token.endMs / 1000) * fps);
+        const nextPageStart = nextToken
+          ? Math.round((nextToken.startMs / 1000) * fps)
           : durationFrames;
         const endFrame = Math.min(
           durationFrames,
@@ -69,12 +63,12 @@ export function CaptionTrack({ tokens, durationFrames }: { tokens: SerializedCap
         if (pageDuration <= 0 || startFrame >= durationFrames) return null;
         return (
           <Sequence
-            key={`${page.startMs}-${index}`}
+            key={`${token.startMs}-${index}`}
             from={startFrame}
             durationInFrames={pageDuration}
             premountFor={fps}
           >
-            <CaptionPage page={page} />
+            <CaptionPage text={token.text} />
           </Sequence>
         );
       })}

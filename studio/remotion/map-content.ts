@@ -79,10 +79,15 @@ function stockScene(
       minimumDescriptiveSample: study?.minimumDescriptiveSample ?? 5,
       sampleSize: study?.statistics.sampleSize ?? 0,
       positiveCount: study?.statistics.positiveCount ?? 0,
+      negativeCount: study
+        ? study.statistics.sampleSize - study.statistics.positiveCount - study.statistics.zeroCount
+        : 0,
       zeroCount: study?.statistics.zeroCount ?? 0,
       medianReturn: study?.statistics.medianReturn ?? null,
       q1Return: study?.statistics.q1Return ?? null,
       q3Return: study?.statistics.q3Return ?? null,
+      medianAdverseMove: study?.statistics.medianAdverseMove ?? null,
+      worstAdverseMove: study?.statistics.worstAdverseMove ?? null,
       caseReturns: study?.cases.map((sample) => sample.returnPercent) ?? [],
     },
     coverage: {
@@ -105,11 +110,10 @@ export function mapDailyContentPackageToRemotionProps(
     throw new Error("Every production Remotion scene requires an audioSrc.");
   }
   const appUrl = options.appUrl?.trim() || DEFAULT_APP_URL;
-  const introNarration = [content.script.hostDisclosure, content.script.hook, content.script.priceBasisLine].join(" ");
+  const introNarration = [content.script.hook, content.script.hostDisclosure, content.script.priceBasisLine].join(" ");
   const outroNarration = [
-    "五檔是五種觀察角度，不是排行。",
+    "完整案例和反例，進盤勢查畫面上的股票代號。",
     content.script.boundaryLine,
-    "完整案例、反例與資料缺口，都在盤勢。",
   ].join(" ");
   const defaultNarrations: [string, string, string, string, string, string, string] = [
     introNarration,

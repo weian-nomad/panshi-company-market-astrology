@@ -75,10 +75,13 @@ export type StockScene = SceneBase & {
     minimumDescriptiveSample: number;
     sampleSize: number;
     positiveCount: number;
+    negativeCount: number;
     zeroCount: number;
     medianReturn: number | null;
     q1Return: number | null;
     q3Return: number | null;
+    medianAdverseMove: number | null;
+    worstAdverseMove: number | null;
     caseReturns: number[];
   };
   coverage: {

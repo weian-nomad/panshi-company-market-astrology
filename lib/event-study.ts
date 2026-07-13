@@ -5,7 +5,7 @@ function round(value: number) {
   return Number(value.toFixed(1));
 }
 
-function quantile(values: number[], proportion: number) {
+export function eventStudyQuantile(values: number[], proportion: number) {
   if (!values.length) return null;
   const sorted = [...values].sort((a, b) => a - b);
   const position = (sorted.length - 1) * proportion;
@@ -14,6 +14,21 @@ function quantile(values: number[], proportion: number) {
   if (lower === upper) return round(sorted[lower]);
   const interpolated = sorted[lower] + (sorted[upper] - sorted[lower]) * (position - lower);
   return round(interpolated);
+}
+
+export function summarizeInquiryCases(cases: InquiryStudy["cases"]): InquiryStudy["statistics"] {
+  const returns = cases.map((item) => item.returnPercent);
+  const adverseMoves = cases.map((item) => item.maxAdverseMove);
+  return {
+    sampleSize: cases.length,
+    positiveCount: returns.filter((value) => value > 0).length,
+    zeroCount: returns.filter((value) => value === 0).length,
+    medianReturn: eventStudyQuantile(returns, 0.5),
+    q1Return: eventStudyQuantile(returns, 0.25),
+    q3Return: eventStudyQuantile(returns, 0.75),
+    medianAdverseMove: eventStudyQuantile(adverseMoves, 0.5),
+    worstAdverseMove: adverseMoves.length ? round(Math.min(...adverseMoves)) : null,
+  };
 }
 
 function intervalCrossesMissingMonth(startDate: string, endDate: string, missingMonths: Set<string>) {
@@ -68,11 +83,9 @@ export function buildExactConfigurationStudy({
       }];
     });
 
+  const statistics = summarizeInquiryCases(cases);
   const returns = cases.map((item) => item.returnPercent);
-  const adverseMoves = cases.map((item) => item.maxAdverseMove);
-  const q1 = quantile(returns, 0.25);
-  const q3 = quantile(returns, 0.75);
-  const sampleSize = cases.length;
+  const sampleSize = statistics.sampleSize;
 
   return {
     matchMode: "exact",
@@ -86,16 +99,7 @@ export function buildExactConfigurationStudy({
         : "descriptive-only",
     statusLabel: statusLabel(returns),
     minimumDescriptiveSample: 5,
-    statistics: {
-      sampleSize,
-      positiveCount: returns.filter((value) => value > 0).length,
-      zeroCount: returns.filter((value) => value === 0).length,
-      medianReturn: quantile(returns, 0.5),
-      q1Return: q1,
-      q3Return: q3,
-      medianAdverseMove: quantile(adverseMoves, 0.5),
-      worstAdverseMove: adverseMoves.length ? round(Math.min(...adverseMoves)) : null,
-    },
+    statistics,
     cases,
   };
 }

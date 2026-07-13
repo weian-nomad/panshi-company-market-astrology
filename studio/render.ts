@@ -6,19 +6,18 @@ import { getStudioConfig } from "@/studio/config";
 import { calculateRenderContentHash } from "@/studio/artifact-integrity";
 import { mapDailyContentPackageToRemotionProps } from "@/studio/remotion/map-content";
 import type { RemotionMediaBundle, RemotionSceneMedia } from "@/studio/remotion/types";
-import { formatSignedPercent } from "@/studio/script";
 import type { DailyContentPackage, DailySelectionItem } from "@/studio/types";
 import { validateDailyPackage } from "@/studio/validation";
-import { generateNarrationWav } from "@/studio/voice";
+import { generateNarrationWav, STUDIO_VOICE_DIRECTION } from "@/studio/voice";
 
 const WIDTH = 1080;
 const HEIGHT = 1920;
 const FPS = 30;
-const DEFAULT_SPEECH_RATE = 1.36;
-const MAX_SPEECH_RATE = 1.5;
-const SCENE_TAIL_SECONDS = 0.35;
-const TARGET_DURATION_SECONDS = 88;
-const SPEECH_CACHE_VERSION = "panshi-remotion-speech-v2";
+const DEFAULT_SPEECH_RATE = 1;
+const MAX_SPEECH_RATE = 1.08;
+const SCENE_TAIL_SECONDS = 0.4;
+const TARGET_DURATION_SECONDS = 86;
+const SPEECH_CACHE_VERSION = "panshi-remotion-speech-v3";
 const RENDER_ENGINE = "remotion-4";
 const PRESENTER_PUBLIC_PATH = "studio/presenter/moheng-virtual-host.png";
 
@@ -63,51 +62,24 @@ export type RenderResult = {
   qc: RenderQc;
 };
 
-function primaryTransit(item: DailySelectionItem) {
-  const signature = item.facts.study?.signature;
-  return item.facts.transits.find((transit) => transit.signature === signature)
-    ?? [...item.facts.transits].sort((a, b) => a.orb - b.orb)[0];
-}
-
-function narrationForItem(item: DailySelectionItem) {
-  const { facts } = item;
-  const transit = primaryTransit(item);
-  const study = facts.study;
-  const marketFact = item.category === "volume-anomaly" && facts.session.volumeRatio20SessionMedian
-    ? `量是二十日中位的 ${facts.session.volumeRatio20SessionMedian.toFixed(1)} 倍`
-    : item.category === "dense-aspects"
-      ? `今天有 ${facts.transits.length} 組主要相位`
-      : `日變動 ${formatSignedPercent(facts.session.dailyChangePercent)}`;
-  const configuration = transit
-    ? `${transit.transitBodyZh}${transit.aspectZh}本命${transit.natalBodyZh}`
-    : "沒有可讀取的主要相位";
-
-  if (!study || study.statistics.sampleSize < study.minimumDescriptiveSample) {
-    return `${item.categoryLabel}，${facts.shortName} ${facts.symbol}。${marketFact}；${configuration}。同盤 ${study?.statistics.sampleSize ?? 0} 筆，樣本不足，不讀方向。`;
-  }
-
-  const stats = study.statistics;
-  return `${item.categoryLabel}，${facts.shortName} ${facts.symbol}。${marketFact}；${configuration}。同盤 ${stats.sampleSize} 筆；D 加 ${study.horizon} 中位 ${formatSignedPercent(stats.medianReturn as number)}，四分位 ${formatSignedPercent(stats.q1Return as number)} 到 ${formatSignedPercent(stats.q3Return as number)}。`;
-}
-
 export function buildRenderScenes(content: DailyContentPackage): SevenRenderScenes {
   const [, month, day] = content.script.date.split("-").map(Number);
   const intro: Scene = {
     id: "00-intro",
     kind: "intro",
-    narration: `我是 AI 虛擬觀測員${content.script.host.name}。今日五盤，五檔股票，五種入選理由。資料截至 ${month} 月 ${day} 日，採未還原收盤價。`,
+    narration: `${content.script.hook} 我是 AI 虛擬觀測員${content.script.host.name}。資料到 ${month} 月 ${day} 日，採未還原收盤價。`,
   };
   const stocks = content.selection.items.map((item, index) => ({
     id: `${String(index + 1).padStart(2, "0")}-${item.facts.symbol}`,
     kind: "stock" as const,
-    narration: narrationForItem(item),
+    narration: content.script.segments[index].narration,
     item,
     index,
   })) as [Scene, Scene, Scene, Scene, Scene];
   const outro: Scene = {
     id: "06-outro",
     kind: "outro",
-    narration: `五檔是五種觀察角度，不是排行。${content.script.boundaryLine} 完整案例、反例與資料缺口，都在盤勢。`,
+    narration: `完整案例和反例，進盤勢查畫面上的股票代號。${content.script.boundaryLine}`,
   };
   return [intro, ...stocks, outro];
 }
@@ -212,6 +184,8 @@ async function ensureNarrationWav(text: string, audioPath: string) {
     .update(SPEECH_CACHE_VERSION)
     .update(config.ttsModel)
     .update(config.ttsVoice)
+    .update(String(config.ttsSpeed))
+    .update(STUDIO_VOICE_DIRECTION)
     .update(text)
     .digest("hex");
   try {
@@ -235,7 +209,15 @@ async function paceNarrationWav(
   await run(config.ffmpegPath, [
     "-y",
     "-i", sourcePath,
-    "-af", `atempo=${speechRate.toFixed(4)},loudnorm=I=-16:LRA=7:TP=-1.5,apad=pad_dur=${SCENE_TAIL_SECONDS}`,
+    "-af", [
+      `atempo=${speechRate.toFixed(4)}`,
+      "highpass=f=75",
+      "equalizer=f=150:t=q:w=1:g=1",
+      "equalizer=f=300:t=q:w=1:g=-1",
+      "acompressor=threshold=0.125:ratio=2:attack=20:release=120:makeup=1.5",
+      "loudnorm=I=-16:LRA=7:TP=-1.5",
+      `apad=pad_dur=${SCENE_TAIL_SECONDS}`,
+    ].join(","),
     "-t", expectedDuration.toFixed(3),
     "-c:a", "pcm_s16le",
     "-ar", "48000",
@@ -400,7 +382,7 @@ export async function renderDailyVideo(
   const requiredSpeechRate = rawTotal / availableSpeechSeconds;
   const speechRate = Math.ceil(Math.max(DEFAULT_SPEECH_RATE, requiredSpeechRate) * 1_000) / 1_000;
   if (speechRate > MAX_SPEECH_RATE) {
-    throw new Error(`旁白過長：需要 ${speechRate.toFixed(2)} 倍語速才能進入 90 秒，本期已自動隔離。`);
+    throw new Error(`旁白過長：需要 ${speechRate.toFixed(2)} 倍語速才能進入 ${TARGET_DURATION_SECONDS} 秒製作上限，本期已自動隔離。`);
   }
 
   const preparedMedia: RemotionSceneMedia[] = [];

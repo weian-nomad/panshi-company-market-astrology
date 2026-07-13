@@ -114,7 +114,38 @@ function phraseParts(text: string) {
 
   const tail = current.trim();
   if (tail) parts.push(tail);
-  return parts;
+  const maxCharacters = 18;
+  const pages = parts.flatMap((part) => {
+    const tokens = part.match(/[+-]?\d+(?:\.\d+)?%?|D\+\d+|[A-Za-z]+|\s+|./gu) ?? [];
+    const chunks: string[] = [];
+    let chunk = "";
+    for (const token of tokens) {
+      const next = `${chunk}${token}`;
+      if (chunk.trim() && [...next.trim()].length > maxCharacters) {
+        chunks.push(chunk.trim());
+        chunk = token.trimStart();
+      } else {
+        chunk = next;
+      }
+    }
+    if (chunk.trim()) chunks.push(chunk.trim());
+    return chunks;
+  });
+
+  const merged: string[] = [];
+  for (const current of pages) {
+    const previous = merged.at(-1);
+    if (
+      previous
+      && [...previous].length < 7
+      && [...`${previous}${current}`].length <= maxCharacters
+    ) {
+      merged[merged.length - 1] = `${previous}${current}`;
+    } else {
+      merged.push(current);
+    }
+  }
+  return merged;
 }
 
 /**

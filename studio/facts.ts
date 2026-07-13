@@ -7,6 +7,7 @@ import {
 import { compactDate, INDUSTRIES } from "@/lib/company-data";
 import { buildExactConfigurationStudy } from "@/lib/event-study";
 import { getCachedPriceBars, getMarketDb, type Market } from "@/lib/market-db";
+import { selectBestExactActiveStudy } from "@/studio/study-quality";
 import type { DailyStockFacts } from "@/studio/types";
 
 const HISTORY_MONTHS = 84;
@@ -48,6 +49,14 @@ export type BuildDailyCandidatesOptions = {
   shortlistSize?: number;
   /** Public research view linked from the generated package. */
   appBaseUrl?: string;
+};
+
+export type DailyCandidatePool = {
+  /**
+   * Expands the same ranked cheap shortlist without recomputing candidates
+   * already examined by an earlier tier in this process.
+   */
+  build: (shortlistSize?: number) => DailyStockFacts[];
 };
 
 function dateFromIso(value: string) {
@@ -280,10 +289,10 @@ export function getLatestMarketTradeDate(): string | null {
  * The inexpensive OHLCV pass ranks the whole cached universe first. Natal,
  * transit and exact-configuration D+20 work is then limited to the shortlist.
  */
-export function buildDailyCandidates(
+export function createDailyCandidatePool(
   requestedDate?: string,
-  options: BuildDailyCandidatesOptions = {},
-): DailyStockFacts[] {
+  options: Pick<BuildDailyCandidatesOptions, "appBaseUrl"> = {},
+): DailyCandidatePool {
   const date = requestedDate ?? getLatestMarketTradeDate();
   if (!date) throw new Error("No fully ingested market trading date is available.");
   dateFromIso(date);
@@ -297,47 +306,48 @@ export function buildDailyCandidates(
   // Daily editorial selection is defined over the complete listed + OTC
   // universe. Silently dropping an exchange would invalidate the five-stock
   // comparison and its completeness language.
-  if (completeMarkets.size !== 2) return [];
+  if (completeMarkets.size !== 2) return { build: () => [] };
 
-  const shortlist = buildCheapCandidates(date, completeMarkets)
-    .slice(0, resolvedShortlistSize(options.shortlistSize));
+  const rankedCandidates = buildCheapCandidates(date, completeMarkets);
   const baseUrl = options.appBaseUrl
     ?? process.env.PANSHI_PUBLIC_URL
     ?? DEFAULT_APP_URL;
-  const candidates: DailyStockFacts[] = [];
+  const cachedFacts = new Map<string, DailyStockFacts | null>();
 
-  for (const candidate of shortlist) {
+  const buildCandidate = (candidate: CheapCandidate): DailyStockFacts | null => {
     let listingDate: string;
     try {
       listingDate = compactDate(candidate.listingDate);
       dateFromIso(listingDate);
     } catch {
-      continue;
+      return null;
     }
 
     // A company younger than the requested window cannot support an 84-month
     // study, even if every price row since listing is cached.
-    if (listingDate > historyFrom) continue;
+    if (listingDate > historyFrom) return null;
 
     const bars = getCachedPriceBars(candidate.symbol, historyFrom, date);
-    if (!barsEndOnDate(bars, date)) continue;
+    if (!barsEndOnDate(bars, date)) return null;
 
     const natal = buildNatalChart(listingDate, 9);
     const transits = buildTransitSnapshot(natal, date, ACTIVE_ORB);
-    const primary = transits[0];
-    if (!primary) continue;
+    if (!transits.length) return null;
 
     const episodes = buildHistoricalTransitEpisodes(natal, bars, EPISODE_PEAK_ORB);
-    const study = buildExactConfigurationStudy({
-      bars,
-      episodes,
-      signature: primary.signature,
-      configurationLabel: `${primary.transitBodyZh}${primary.aspectZh}本命${primary.natalBodyZh}`,
-      horizon: STUDY_HORIZON,
-      missingMonths: [],
-    });
+    const study = selectBestExactActiveStudy(transits.map((transit) => ({
+      orb: transit.orb,
+      study: buildExactConfigurationStudy({
+        bars,
+        episodes,
+        signature: transit.signature,
+        configurationLabel: `${transit.transitBodyZh}${transit.aspectZh}本命${transit.natalBodyZh}`,
+        horizon: STUDY_HORIZON,
+        missingMonths: [],
+      }),
+    })));
 
-    candidates.push({
+    return {
       date,
       symbol: candidate.symbol,
       shortName: candidate.shortName,
@@ -362,8 +372,29 @@ export function buildDailyCandidates(
         basis: "raw-unadjusted-close",
       },
       appUrl: appUrl(baseUrl, candidate.symbol, date),
-    });
-  }
+    };
+  };
 
-  return candidates;
+  return {
+    build(shortlistSize = DEFAULT_SHORTLIST_SIZE) {
+      const shortlist = rankedCandidates.slice(0, resolvedShortlistSize(shortlistSize));
+      for (const candidate of shortlist) {
+        if (!cachedFacts.has(candidate.symbol)) {
+          cachedFacts.set(candidate.symbol, buildCandidate(candidate));
+        }
+      }
+      return shortlist.flatMap((candidate) => {
+        const facts = cachedFacts.get(candidate.symbol);
+        return facts ? [facts] : [];
+      });
+    },
+  };
+}
+
+export function buildDailyCandidates(
+  requestedDate?: string,
+  options: BuildDailyCandidatesOptions = {},
+): DailyStockFacts[] {
+  const pool = createDailyCandidatePool(requestedDate, { appBaseUrl: options.appBaseUrl });
+  return pool.build(options.shortlistSize);
 }

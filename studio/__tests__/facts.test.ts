@@ -117,6 +117,7 @@ function createFixtureDatabase() {
 createFixtureDatabase();
 const {
   buildDailyCandidates,
+  createDailyCandidatePool,
   getLatestMarketTradeDate,
 } = await import("@/studio/facts");
 
@@ -164,6 +165,18 @@ test("default date uses the latest date proven complete across both markets", ()
   assert.ok(candidates.every((candidate) => candidate.date === TARGET_DATE));
   assert.deepEqual(new Set(candidates.map((candidate) => candidate.market)), new Set(["TWSE", "TPEx"]));
   assert.ok(candidates.every((candidate) => candidate.coverage.to === TARGET_DATE));
+});
+
+test("adaptive shortlist tiers reuse facts already computed by the same pool", () => {
+  const pool = createDailyCandidatePool(TARGET_DATE, { appBaseUrl: "https://panshi.example/" });
+  const firstTier = pool.build(1);
+  const expandedTier = pool.build(3);
+
+  assert.equal(firstTier.length, 1);
+  assert.strictEqual(
+    expandedTier.find((candidate) => candidate.symbol === firstTier[0].symbol),
+    firstTier[0],
+  );
 });
 
 test("daily facts stop when either market has an incomplete 84-month ledger", () => {

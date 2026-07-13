@@ -1,4 +1,5 @@
 import type { InquiryStudy } from "@/lib/inquiry-types";
+import { isPublishableStudy } from "@/studio/study-quality";
 import {
   EDITORIAL_CATEGORIES,
   EDITORIAL_CATEGORY_LABELS,
@@ -11,6 +12,10 @@ import {
 } from "@/studio/types";
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+export class DailySelectionUnavailableError extends Error {
+  override name = "DailySelectionUnavailableError";
+}
 
 function round(value: number, digits = 2) {
   return Number(value.toFixed(digits));
@@ -58,6 +63,7 @@ function isBaseEligible(candidate: DailyStockFacts, date: string) {
     && Number.isFinite(candidate.session.dailyChangePercent)
     && candidate.transits.length > 0
     && hasCurrentStudy(candidate)
+    && isPublishableStudy(candidate.study)
     && hasUsableCoverage(candidate);
 }
 
@@ -92,8 +98,13 @@ export function isEligibleForCategory(
       ) return false;
       return q3 > q1;
     }
-    case "rare-sample":
-      return Boolean(candidate.study && candidate.study.statistics.sampleSize < 5);
+    case "today-history-contrast": {
+      const medianReturn = candidate.study?.statistics.medianReturn;
+      return medianReturn !== null
+        && medianReturn !== undefined
+        && Number.isFinite(medianReturn)
+        && Math.abs(candidate.session.dailyChangePercent - medianReturn) >= 0.1;
+    }
   }
 }
 
@@ -112,8 +123,12 @@ function categoryScore(candidate: DailyStockFacts, category: EditorialCategory) 
       const q3 = candidate.study?.statistics.q3Return;
       return q1 === null || q1 === undefined || q3 === null || q3 === undefined ? -Infinity : q3 - q1;
     }
-    case "rare-sample":
-      return 5 - (candidate.study?.statistics.sampleSize ?? 5);
+    case "today-history-contrast": {
+      const daily = candidate.session.dailyChangePercent;
+      const historical = candidate.study?.statistics.medianReturn ?? daily;
+      const oppositeDirection = daily * historical < 0 ? 100 : 0;
+      return oppositeDirection + Math.abs(daily - historical);
+    }
   }
 }
 
@@ -123,7 +138,7 @@ function categoryMetric(category: EditorialCategory): SalienceMetric {
     case "volume-anomaly": return "volume-ratio-to-20-session-median";
     case "dense-aspects": return "active-aspect-count";
     case "historical-divergence": return "interquartile-spread";
-    case "rare-sample": return "exact-sample-count";
+    case "today-history-contrast": return "today-to-historical-median-gap";
   }
 }
 
@@ -140,8 +155,10 @@ function salienceValue(candidate: DailyStockFacts, category: EditorialCategory) 
       const q3 = candidate.study?.statistics.q3Return ?? 0;
       return round(q3 - q1, 1);
     }
-    case "rare-sample":
-      return candidate.study?.statistics.sampleSize ?? 0;
+    case "today-history-contrast":
+      return round(Math.abs(
+        candidate.session.dailyChangePercent - (candidate.study?.statistics.medianReturn ?? 0),
+      ), 1);
   }
 }
 
@@ -158,8 +175,8 @@ function salienceSummary(candidate: DailyStockFacts, category: EditorialCategory
       const spread = (study.statistics.q3Return as number) - (study.statistics.q1Return as number);
       return `同組態 D+${study.horizon} 變動的四分位跨度為 ${spread.toFixed(1)} 個百分點。`;
     }
-    case "rare-sample":
-      return `同組態只有 ${candidate.study?.statistics.sampleSize ?? 0} 筆完整樣本，樣本不足。`;
+    case "today-history-contrast":
+      return `當日變動 ${signedPercent(candidate.session.dailyChangePercent)}；同組態 D+${candidate.study?.horizon ?? 20} 中位 ${signedPercent(candidate.study?.statistics.medianReturn ?? 0)}。`;
   }
 }
 
@@ -224,32 +241,54 @@ function canCompleteAssignment({
   candidates,
   blockedSymbols,
   date,
+  selected = [],
 }: {
   categories: EditorialCategory[];
   candidates: DailyStockFacts[];
   blockedSymbols: Set<string>;
   date: string;
+  selected?: DailyStockFacts[];
 }) {
-  const matchedCategoryBySymbol = new Map<string, EditorialCategory>();
-
-  const findMatch = (category: EditorialCategory, visited: Set<string>): boolean => {
-    const eligible = candidates
-      .filter((candidate) => !blockedSymbols.has(candidate.symbol) && isEligibleForCategory(candidate, category, date))
-      .sort((a, b) => a.symbol.localeCompare(b.symbol));
-
-    for (const candidate of eligible) {
-      if (visited.has(candidate.symbol)) continue;
-      visited.add(candidate.symbol);
-      const previousCategory = matchedCategoryBySymbol.get(candidate.symbol);
-      if (!previousCategory || findMatch(previousCategory, visited)) {
-        matchedCategoryBySymbol.set(candidate.symbol, category);
-        return true;
-      }
-    }
-    return false;
+  const reachesRequiredVariation = (chosen: DailyStockFacts[]) => {
+    const industries = new Set(chosen.map((candidate) => candidate.industry));
+    const signatures = new Set(chosen.map(signatureForCandidate).filter(Boolean));
+    return industries.size >= 3 && signatures.size >= 3;
   };
 
-  return categories.every((category) => findMatch(category, new Set()));
+  const canStillReachVariation = (
+    chosen: DailyStockFacts[],
+    remainingCategories: EditorialCategory[],
+    blocked: Set<string>,
+  ) => {
+    const possible = candidates.filter((candidate) => (
+      !blocked.has(candidate.symbol)
+      && remainingCategories.some((category) => isEligibleForCategory(candidate, category, date))
+    ));
+    const industries = new Set([...chosen, ...possible].map((candidate) => candidate.industry));
+    const signatures = new Set([...chosen, ...possible].map(signatureForCandidate).filter(Boolean));
+    return industries.size >= 3 && signatures.size >= 3;
+  };
+
+  const search = (
+    index: number,
+    chosen: DailyStockFacts[],
+    blocked: Set<string>,
+  ): boolean => {
+    if (index >= categories.length) return reachesRequiredVariation(chosen);
+    const remaining = categories.slice(index);
+    if (!canStillReachVariation(chosen, remaining, blocked)) return false;
+    const category = categories[index];
+    const eligible = candidates
+      .filter((candidate) => !blocked.has(candidate.symbol) && isEligibleForCategory(candidate, category, date))
+      .sort((a, b) => a.symbol.localeCompare(b.symbol));
+    return eligible.some((candidate) => search(
+      index + 1,
+      [...chosen, candidate],
+      new Set([...blocked, candidate.symbol]),
+    ));
+  };
+
+  return search(0, selected, new Set(blockedSymbols));
 }
 
 function toSelectionItem(candidate: DailyStockFacts, category: EditorialCategory): DailySelectionItem {
@@ -288,7 +327,7 @@ export function selectDailyFive({
       const count = pool.filter((candidate) => isEligibleForCategory(candidate, category, date)).length;
       return `${EDITORIAL_CATEGORY_LABELS[category]} ${count} 檔`;
     }).join("、");
-    throw new Error(`無法組成五檔不重複的今日五盤：${availability}。`);
+    throw new DailySelectionUnavailableError(`無法組成五檔不重複、且至少涵蓋三種產業與三種組態的今日五盤：${availability}。`);
   }
 
   const recent = new Set(recentSymbols);
@@ -312,10 +351,11 @@ export function selectDailyFive({
         candidates: pool,
         blockedSymbols,
         date,
+        selected: [...selectedFacts, candidate],
       });
     });
 
-    if (!choice) throw new Error(`無法為「${EDITORIAL_CATEGORY_LABELS[category]}」保留唯一標的。`);
+    if (!choice) throw new DailySelectionUnavailableError(`無法為「${EDITORIAL_CATEGORY_LABELS[category]}」保留唯一標的。`);
     selected.set(category, choice);
     selectedFacts.push(choice);
   }
@@ -329,6 +369,12 @@ export function selectDailyFive({
   return {
     date,
     policy: "neutral-editorial-salience",
+    evidencePolicy: {
+      studyMatch: "exact-active-configuration",
+      activeStudyPrecedence: ["publishable-completeness", "sample-size", "orb", "signature"],
+      minimumSampleSize: 5,
+      requiresUpAndDownCases: true,
+    },
     items,
     diversification: {
       recentSymbolsConsidered: [...new Set(recentSymbols)].sort((a, b) => a.localeCompare(b)),

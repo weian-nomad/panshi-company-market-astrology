@@ -15,8 +15,8 @@ function MarketCue({ scene }: { scene: StockSceneProps }) {
   if (scene.category === "dense-aspects") {
     return <>3° 內 {scene.configuration.activeAspectCount} 組主要相位</>;
   }
-  if (scene.category === "rare-sample") {
-    return <>同組態 {scene.history.sampleSize} 筆完整樣本</>;
+  if (scene.category === "today-history-contrast") {
+    return <>{formatSignedPercent(scene.dailyChangePercent)} TODAY · {formatSignedPercent(scene.history.medianReturn)} D+{scene.history.horizon}</>;
   }
   if (scene.category === "historical-divergence") {
     const spread = scene.history.q1Return === null || scene.history.q3Return === null
@@ -51,6 +51,9 @@ export function StockScene({
   const configuration = scene.configuration.transitBodyZh
     ? `${scene.configuration.transitGlyph ?? ""} 行運${scene.configuration.transitBodyZh} ${scene.configuration.aspectGlyph ?? ""} ${scene.configuration.aspectZh ?? ""} ${scene.configuration.natalGlyph ?? ""} 本命${scene.configuration.natalBodyZh}`
     : "3° 內沒有可讀取的主要相位";
+  const directionTotal = Math.max(1, scene.history.positiveCount + scene.history.negativeCount + scene.history.zeroCount);
+  const positiveWidth = scene.history.positiveCount / directionTotal * 100;
+  const negativeWidth = scene.history.negativeCount / directionTotal * 100;
 
   return (
     <EditorialFrame
@@ -189,11 +192,26 @@ export function StockScene({
         </div>
       </div>
 
+      <div style={{ position: "absolute", left: 100, top: 1492, width: 820 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <div style={labelStyle}>歷史漲跌帳</div>
+          <div style={{ color: COLORS.paperMuted, fontFamily: FONTS.mono, fontSize: 21 }}>
+            漲 {scene.history.positiveCount} · 跌 {scene.history.negativeCount}
+            {scene.history.zeroCount > 0 ? ` · 平 ${scene.history.zeroCount}` : ""}
+          </div>
+        </div>
+        <div style={{ display: "flex", height: 10, marginTop: 17, overflow: "hidden", background: COLORS.rule }}>
+          <div style={{ width: `${positiveWidth}%`, background: COLORS.brass }} />
+          <div style={{ width: `${negativeWidth}%`, background: COLORS.vermilion }} />
+          <div style={{ flex: 1, background: COLORS.ash }} />
+        </div>
+      </div>
+
       <div
         style={{
           position: "absolute",
           right: 76,
-          top: 1510,
+          top: 1572,
           color: COLORS.ash,
           fontFamily: FONTS.mono,
           fontSize: 18,
