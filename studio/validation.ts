@@ -222,7 +222,8 @@ function validateNumericClaims(content: DailyContentPackage, errors: ContentVali
   const allowed = supportedNumbers(content);
   const copy = visibleScriptStrings(content)
     .join("\n")
-    .replace(/https?:\/\/\S+/g, "");
+    .replace(/https?:\/\/\S+/g, "")
+    .replace(/跌\s+(\d+(?:\.\d+)?)%/gu, "-$1%");
   const tokens = copy.match(CLAIM_NUMBER) ?? [];
   const unsupported = [...new Set(tokens.filter((token) => !allowed.has(canonicalNumber(token))))];
   if (unsupported.length) {
@@ -343,6 +344,17 @@ function validateScriptStructure(content: DailyContentPackage, errors: ContentVa
   }
   if (!script.fullNarration.includes(script.hook)) {
     errors.push(issue("missing-hook", "script.fullNarration", "完整旁白必須包含本期開場鉤子。"));
+  }
+  const expectedFullNarration = [
+    script.hook,
+    script.hostDisclosure,
+    script.priceBasisLine,
+    ...script.segments.map((segment) => segment.narration),
+    script.ctaLine,
+    script.boundaryLine,
+  ].join("\n");
+  if (script.fullNarration !== expectedFullNarration) {
+    errors.push(issue("full-narration-mismatch", "script.fullNarration", "完整旁白不得增刪事實鎖定以外的句子。"));
   }
   if (script.fullNarration.length >= 900) {
     errors.push(issue("voiceover-too-long", "script.fullNarration", "精簡口播必須少於 900 字元；完整涵蓋與統計保留在審稿欄位與貼文。"));

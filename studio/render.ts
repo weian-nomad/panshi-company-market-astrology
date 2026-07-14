@@ -16,7 +16,7 @@ const FPS = 30;
 const DEFAULT_SPEECH_RATE = 1;
 const MAX_SPEECH_RATE = 1.08;
 const SCENE_TAIL_SECONDS = 0.4;
-const TARGET_DURATION_SECONDS = 86;
+const TARGET_DURATION_SECONDS = 89;
 const SPEECH_CACHE_VERSION = "panshi-remotion-speech-v3";
 const RENDER_ENGINE = "remotion-4";
 const PRESENTER_PUBLIC_PATH = "studio/presenter/moheng-virtual-host.png";
@@ -67,7 +67,7 @@ export function buildRenderScenes(content: DailyContentPackage): SevenRenderScen
   const intro: Scene = {
     id: "00-intro",
     kind: "intro",
-    narration: `${content.script.hook} 我是 AI 虛擬觀測員${content.script.host.name}。資料到 ${month} 月 ${day} 日，採未還原收盤價。`,
+    narration: `${content.script.hook} AI ${content.script.host.name}；${month} 月 ${day} 日，未還原收盤價。`,
   };
   const stocks = content.selection.items.map((item, index) => ({
     id: `${String(index + 1).padStart(2, "0")}-${item.facts.symbol}`,
@@ -79,7 +79,7 @@ export function buildRenderScenes(content: DailyContentPackage): SevenRenderScen
   const outro: Scene = {
     id: "06-outro",
     kind: "outro",
-    narration: `完整案例和反例，進盤勢查畫面上的股票代號。${content.script.boundaryLine}`,
+    narration: `完整案例在盤勢。非投資建議，無買賣訊號。`,
   };
   return [intro, ...stocks, outro];
 }
@@ -211,9 +211,10 @@ async function paceNarrationWav(
     "-i", sourcePath,
     "-af", [
       `atempo=${speechRate.toFixed(4)}`,
-      "highpass=f=75",
-      "equalizer=f=150:t=q:w=1:g=1",
-      "equalizer=f=300:t=q:w=1:g=-1",
+      "highpass=f=65",
+      "equalizer=f=120:t=q:w=0.9:g=2",
+      "equalizer=f=280:t=q:w=1:g=-1",
+      "equalizer=f=3200:t=q:w=1:g=0.8",
       "acompressor=threshold=0.125:ratio=2:attack=20:release=120:makeup=1.5",
       "loudnorm=I=-16:LRA=7:TP=-1.5",
       `apad=pad_dur=${SCENE_TAIL_SECONDS}`,

@@ -63,7 +63,7 @@ export function getStudioConfig() {
     remotionConcurrency: positiveInteger("REMOTION_CONCURRENCY", 2),
     ttsModel: process.env.STUDIO_TTS_MODEL || "gpt-4o-mini-tts",
     ttsVoice: process.env.STUDIO_TTS_VOICE || "onyx",
-    ttsSpeed: boundedNumber("STUDIO_TTS_SPEED", 0.96, 0.25, 4),
+    ttsSpeed: boundedNumber("STUDIO_TTS_SPEED", 1, 0.25, 4),
     channelId: process.env.YOUTUBE_CHANNEL_ID?.trim() || null,
     youtubeRegion: process.env.YOUTUBE_REGION || "TW",
     youtubeCategoryName: process.env.YOUTUBE_CATEGORY_NAME || "Education",
