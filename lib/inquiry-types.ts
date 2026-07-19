@@ -2,8 +2,19 @@ import type { TransitConfiguration } from "@/lib/astrology";
 import type { PriceHistory, TradingDateResolution } from "@/lib/company-data";
 
 export type InquiryAnchorKey = "listing" | "established";
-export type InquiryIntent = "consider_buy" | "consider_sell" | "observe";
+export type InquiryIntent = "new_position_research" | "held_position_review" | "observe";
 export type InquiryHorizon = 5 | 20 | 60;
+
+export type QueryUsage = {
+  tier: "free" | "pro";
+  dailyLimit: 3;
+  used: number;
+  remaining: number | null;
+  counted: boolean;
+  isDailyFive: boolean;
+  allowed: boolean;
+  resetAt: string;
+};
 
 export function isInquiryAnchor(value: string): value is InquiryAnchorKey {
   return value === "listing" || value === "established";
@@ -86,6 +97,7 @@ export type InquiryPayload = {
     events: string;
     generatedAt: string;
   };
+  usage?: QueryUsage;
 };
 
 export type SavedInquiry = {

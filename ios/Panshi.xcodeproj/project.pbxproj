@@ -1,0 +1,590 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0549BEC93778DC68CBE8AA51 /* DailyResearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F98696C9668D4672459B511 /* DailyResearchView.swift */; };
+		06D2F95F05CDED7CAA01A865 /* DailyResearchStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE88B5D8862C35511789CC2E /* DailyResearchStore.swift */; };
+		07F784F9AB1AA2D82FD4F692 /* SubscriptionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B18CEF51ED44576D3B4A5A47 /* SubscriptionStore.swift */; };
+		0ACF08FD4A1E6F1E9E7CF782 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 696313DA79EEEC676BEACA94 /* PrivacyInfo.xcprivacy */; };
+		14496A72939681E1EA984E45 /* InquiryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA951502C72890BABBB5D46 /* InquiryView.swift */; };
+		2162BCEF5AD2DA81CF71EB0D /* PanshiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E01E8755DDED2D53D2EB0F9 /* PanshiApp.swift */; };
+		220047D29F26D1EDC555BB4D /* PanshiTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B14DC93337D597E61F0437E /* PanshiTheme.swift */; };
+		2F9209CD37A425531AF8F9EF /* AdExperience.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E0E897DDB425F9CB3AEEAF9 /* AdExperience.swift */; };
+		39714F121E249A6912BEF764 /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80198F12B1126D6424610199 /* JournalView.swift */; };
+		3AD6C8F722E8D22E4678D83F /* PersistenceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1096208977534422AD013D9 /* PersistenceModels.swift */; };
+		3C920B0EF3D1811B58AE76FB /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9226194430A09D640A6900 /* ExploreView.swift */; };
+		54A08C374823B7696DAAA32D /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBEC1AF87693A38487FB66C8 /* AppState.swift */; };
+		61A6530387129049967FF268 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86B705FA038F24840E05D9E0 /* APIClient.swift */; };
+		6F66A5446F489EBE47B44DF1 /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E3D7AE96E1F872A72F108ED /* RootTabView.swift */; };
+		7BBD542A8A5A4FC7F17D298C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0918C9C8E12B8FBF8EBF5164 /* Assets.xcassets */; };
+		7F145E9BE49E2C8B48883045 /* PanshiDisplay.otf in Resources */ = {isa = PBXBuildFile; fileRef = 207926D2F5939A1E8E5E0865 /* PanshiDisplay.otf */; };
+		805C5D6FEB71F135A17E8ACE /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21D0427AFA3F10C72E0C1E8B /* AboutView.swift */; };
+		871785B3B572CEB6D4CC2BA0 /* BrandHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EBF890933A879B143CCEB71 /* BrandHeader.swift */; };
+		9679857A9CD2FA30F4FCCC30 /* JournalStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA71A1A5348D5FFE84D09DA0 /* JournalStore.swift */; };
+		AA334C196BA8327D179A1B07 /* PriceChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A846A4C07477EA04EDA2C026 /* PriceChartView.swift */; };
+		AE9836EE7BD4122427D06BDA /* PanshiFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1831D15B2138C2A8E2EEE2 /* PanshiFormat.swift */; };
+		AF34F6C1232E3946EECF3DAD /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 107145DDBBBBBAE3CB8F81FA /* PaywallView.swift */; };
+		B3EB6387DB9C4DB2A6A96C24 /* ResearchLanguagePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BCFE9835284292F73A5C426 /* ResearchLanguagePolicy.swift */; };
+		C4B3E029F05A637E34AC797C /* APIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE10DBA415A74DCB26B63A42 /* APIModels.swift */; };
+		CD05BF803D7F199357D2FD28 /* NatalInstrumentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FE854770C0EFF95D1066287 /* NatalInstrumentView.swift */; };
+		D45E5A7EB63B82004321DCA0 /* QueryIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 369505BA5EB0F10176DF94DF /* QueryIdentity.swift */; };
+		E5B270F266A4D064D6263320 /* ReviewNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A1C513C51AF84347726054 /* ReviewNotificationService.swift */; };
+		EF28CF15935B0BD093D7A1F8 /* PanshiDateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 852B5394740282C706FFBADF /* PanshiDateTests.swift */; };
+		FD199E514C88554EA7A337AB /* ResearchLanguagePolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1947027FB4299D4CF1CD9BC3 /* ResearchLanguagePolicyTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		8D5B690129F35053D4B1006D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 79C35A35C96EAC84F5A10B93 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9C6714CA87164709FFB6338B;
+			remoteInfo = Panshi;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		0918C9C8E12B8FBF8EBF5164 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		0E01E8755DDED2D53D2EB0F9 /* PanshiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanshiApp.swift; sourceTree = "<group>"; };
+		107145DDBBBBBAE3CB8F81FA /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
+		1947027FB4299D4CF1CD9BC3 /* ResearchLanguagePolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResearchLanguagePolicyTests.swift; sourceTree = "<group>"; };
+		207926D2F5939A1E8E5E0865 /* PanshiDisplay.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = PanshiDisplay.otf; sourceTree = "<group>"; };
+		21D0427AFA3F10C72E0C1E8B /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
+		2E3D7AE96E1F872A72F108ED /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
+		369505BA5EB0F10176DF94DF /* QueryIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryIdentity.swift; sourceTree = "<group>"; };
+		3BCFE9835284292F73A5C426 /* ResearchLanguagePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResearchLanguagePolicy.swift; sourceTree = "<group>"; };
+		3FE854770C0EFF95D1066287 /* NatalInstrumentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NatalInstrumentView.swift; sourceTree = "<group>"; };
+		4CA951502C72890BABBB5D46 /* InquiryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InquiryView.swift; sourceTree = "<group>"; };
+		4EBF890933A879B143CCEB71 /* BrandHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandHeader.swift; sourceTree = "<group>"; };
+		54A1C513C51AF84347726054 /* ReviewNotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewNotificationService.swift; sourceTree = "<group>"; };
+		5E0E897DDB425F9CB3AEEAF9 /* AdExperience.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdExperience.swift; sourceTree = "<group>"; };
+		696313DA79EEEC676BEACA94 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		7A1831D15B2138C2A8E2EEE2 /* PanshiFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanshiFormat.swift; sourceTree = "<group>"; };
+		80198F12B1126D6424610199 /* JournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalView.swift; sourceTree = "<group>"; };
+		852B5394740282C706FFBADF /* PanshiDateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanshiDateTests.swift; sourceTree = "<group>"; };
+		86B705FA038F24840E05D9E0 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		8B14DC93337D597E61F0437E /* PanshiTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanshiTheme.swift; sourceTree = "<group>"; };
+		9F98696C9668D4672459B511 /* DailyResearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyResearchView.swift; sourceTree = "<group>"; };
+		9FD5F5790C34DC87B7DD0763 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		A1096208977534422AD013D9 /* PersistenceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceModels.swift; sourceTree = "<group>"; };
+		A846A4C07477EA04EDA2C026 /* PriceChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceChartView.swift; sourceTree = "<group>"; };
+		AE10DBA415A74DCB26B63A42 /* APIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIModels.swift; sourceTree = "<group>"; };
+		B18CEF51ED44576D3B4A5A47 /* SubscriptionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionStore.swift; sourceTree = "<group>"; };
+		C9DBCA782C1A5448D1F1AF8C /* Panshi.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Panshi.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D5DEF0E7F4018F3264CDDFCF /* PanshiTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PanshiTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DA71A1A5348D5FFE84D09DA0 /* JournalStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalStore.swift; sourceTree = "<group>"; };
+		EB9226194430A09D640A6900 /* ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreView.swift; sourceTree = "<group>"; };
+		EBEC1AF87693A38487FB66C8 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		FE88B5D8862C35511789CC2E /* DailyResearchStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyResearchStore.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		1C99F83AAA8652812ED62AE9 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				21D0427AFA3F10C72E0C1E8B /* AboutView.swift */,
+				9F98696C9668D4672459B511 /* DailyResearchView.swift */,
+				EB9226194430A09D640A6900 /* ExploreView.swift */,
+				4CA951502C72890BABBB5D46 /* InquiryView.swift */,
+				80198F12B1126D6424610199 /* JournalView.swift */,
+				107145DDBBBBBAE3CB8F81FA /* PaywallView.swift */,
+				2E3D7AE96E1F872A72F108ED /* RootTabView.swift */,
+				A8BFB765E948F59F6C432678 /* Components */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		56ACA1C8512D4C922C9F1D71 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C9DBCA782C1A5448D1F1AF8C /* Panshi.app */,
+				D5DEF0E7F4018F3264CDDFCF /* PanshiTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7C2B28794C0EF455975CEC71 = {
+			isa = PBXGroup;
+			children = (
+				A7A44D2E6EA054CAF00BEEA6 /* Panshi */,
+				A1A4A7B65FC8A94B85EA0EB3 /* PanshiTests */,
+				56ACA1C8512D4C922C9F1D71 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		8BBDE574D1E24C560A511D3F /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				5E0E897DDB425F9CB3AEEAF9 /* AdExperience.swift */,
+				86B705FA038F24840E05D9E0 /* APIClient.swift */,
+				FE88B5D8862C35511789CC2E /* DailyResearchStore.swift */,
+				DA71A1A5348D5FFE84D09DA0 /* JournalStore.swift */,
+				369505BA5EB0F10176DF94DF /* QueryIdentity.swift */,
+				3BCFE9835284292F73A5C426 /* ResearchLanguagePolicy.swift */,
+				54A1C513C51AF84347726054 /* ReviewNotificationService.swift */,
+				B18CEF51ED44576D3B4A5A47 /* SubscriptionStore.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		99C4978493E998A787A038E7 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				EBEC1AF87693A38487FB66C8 /* AppState.swift */,
+				0E01E8755DDED2D53D2EB0F9 /* PanshiApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		A1A4A7B65FC8A94B85EA0EB3 /* PanshiTests */ = {
+			isa = PBXGroup;
+			children = (
+				852B5394740282C706FFBADF /* PanshiDateTests.swift */,
+				1947027FB4299D4CF1CD9BC3 /* ResearchLanguagePolicyTests.swift */,
+			);
+			path = PanshiTests;
+			sourceTree = "<group>";
+		};
+		A7A44D2E6EA054CAF00BEEA6 /* Panshi */ = {
+			isa = PBXGroup;
+			children = (
+				99C4978493E998A787A038E7 /* App */,
+				D14EE9769679B16E673F9414 /* Design */,
+				AD032C8B54FA94004719FB1A /* Models */,
+				DA47681012802BB73A9FBDF2 /* Resources */,
+				8BBDE574D1E24C560A511D3F /* Services */,
+				1C99F83AAA8652812ED62AE9 /* Views */,
+			);
+			path = Panshi;
+			sourceTree = "<group>";
+		};
+		A8BFB765E948F59F6C432678 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				4EBF890933A879B143CCEB71 /* BrandHeader.swift */,
+				3FE854770C0EFF95D1066287 /* NatalInstrumentView.swift */,
+				A846A4C07477EA04EDA2C026 /* PriceChartView.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		AD032C8B54FA94004719FB1A /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				AE10DBA415A74DCB26B63A42 /* APIModels.swift */,
+				A1096208977534422AD013D9 /* PersistenceModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		D14EE9769679B16E673F9414 /* Design */ = {
+			isa = PBXGroup;
+			children = (
+				7A1831D15B2138C2A8E2EEE2 /* PanshiFormat.swift */,
+				8B14DC93337D597E61F0437E /* PanshiTheme.swift */,
+			);
+			path = Design;
+			sourceTree = "<group>";
+		};
+		DA47681012802BB73A9FBDF2 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				0918C9C8E12B8FBF8EBF5164 /* Assets.xcassets */,
+				9FD5F5790C34DC87B7DD0763 /* Info.plist */,
+				207926D2F5939A1E8E5E0865 /* PanshiDisplay.otf */,
+				696313DA79EEEC676BEACA94 /* PrivacyInfo.xcprivacy */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		7805F2E3DCCEA5E4D5B0EAE0 /* PanshiTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 63894D89188662B6C578408F /* Build configuration list for PBXNativeTarget "PanshiTests" */;
+			buildPhases = (
+				BE47D8103004BE1A5FD11301 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F96A7283E7D55077014AE60C /* PBXTargetDependency */,
+			);
+			name = PanshiTests;
+			packageProductDependencies = (
+			);
+			productName = PanshiTests;
+			productReference = D5DEF0E7F4018F3264CDDFCF /* PanshiTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		9C6714CA87164709FFB6338B /* Panshi */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1FAD23F2B6C1B6D8C333BB58 /* Build configuration list for PBXNativeTarget "Panshi" */;
+			buildPhases = (
+				C8886ACA8B4E2DFFAA987C36 /* Sources */,
+				A2DF5199E77AA7706362A487 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Panshi;
+			packageProductDependencies = (
+			);
+			productName = Panshi;
+			productReference = C9DBCA782C1A5448D1F1AF8C /* Panshi.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		79C35A35C96EAC84F5A10B93 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					7805F2E3DCCEA5E4D5B0EAE0 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+					9C6714CA87164709FFB6338B = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = B014A0A6A62055E3FD3EA1E0 /* Build configuration list for PBXProject "Panshi" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 7C2B28794C0EF455975CEC71;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 56ACA1C8512D4C922C9F1D71 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				9C6714CA87164709FFB6338B /* Panshi */,
+				7805F2E3DCCEA5E4D5B0EAE0 /* PanshiTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A2DF5199E77AA7706362A487 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7BBD542A8A5A4FC7F17D298C /* Assets.xcassets in Resources */,
+				7F145E9BE49E2C8B48883045 /* PanshiDisplay.otf in Resources */,
+				0ACF08FD4A1E6F1E9E7CF782 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		BE47D8103004BE1A5FD11301 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EF28CF15935B0BD093D7A1F8 /* PanshiDateTests.swift in Sources */,
+				FD199E514C88554EA7A337AB /* ResearchLanguagePolicyTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C8886ACA8B4E2DFFAA987C36 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				61A6530387129049967FF268 /* APIClient.swift in Sources */,
+				C4B3E029F05A637E34AC797C /* APIModels.swift in Sources */,
+				805C5D6FEB71F135A17E8ACE /* AboutView.swift in Sources */,
+				2F9209CD37A425531AF8F9EF /* AdExperience.swift in Sources */,
+				54A08C374823B7696DAAA32D /* AppState.swift in Sources */,
+				871785B3B572CEB6D4CC2BA0 /* BrandHeader.swift in Sources */,
+				06D2F95F05CDED7CAA01A865 /* DailyResearchStore.swift in Sources */,
+				0549BEC93778DC68CBE8AA51 /* DailyResearchView.swift in Sources */,
+				3C920B0EF3D1811B58AE76FB /* ExploreView.swift in Sources */,
+				14496A72939681E1EA984E45 /* InquiryView.swift in Sources */,
+				9679857A9CD2FA30F4FCCC30 /* JournalStore.swift in Sources */,
+				39714F121E249A6912BEF764 /* JournalView.swift in Sources */,
+				CD05BF803D7F199357D2FD28 /* NatalInstrumentView.swift in Sources */,
+				2162BCEF5AD2DA81CF71EB0D /* PanshiApp.swift in Sources */,
+				AE9836EE7BD4122427D06BDA /* PanshiFormat.swift in Sources */,
+				220047D29F26D1EDC555BB4D /* PanshiTheme.swift in Sources */,
+				AF34F6C1232E3946EECF3DAD /* PaywallView.swift in Sources */,
+				3AD6C8F722E8D22E4678D83F /* PersistenceModels.swift in Sources */,
+				AA334C196BA8327D179A1B07 /* PriceChartView.swift in Sources */,
+				D45E5A7EB63B82004321DCA0 /* QueryIdentity.swift in Sources */,
+				B3EB6387DB9C4DB2A6A96C24 /* ResearchLanguagePolicy.swift in Sources */,
+				E5B270F266A4D064D6263320 /* ReviewNotificationService.swift in Sources */,
+				6F66A5446F489EBE47B44DF1 /* RootTabView.swift in Sources */,
+				07F784F9AB1AA2D82FD4F692 /* SubscriptionStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		F96A7283E7D55077014AE60C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9C6714CA87164709FFB6338B /* Panshi */;
+			targetProxy = 8D5B690129F35053D4B1006D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0CD9EF12FB10B94AC1A55252 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.nomadsustaintech.panshi.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Panshi.app/Panshi";
+			};
+			name = Release;
+		};
+		4BE15DD3E63D7F486EC535FF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Panshi/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.nomadsustaintech.panshi;
+				PRODUCT_NAME = Panshi;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		588BFA55F28BF6B5A0B93C48 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Panshi/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.nomadsustaintech.panshi;
+				PRODUCT_NAME = Panshi;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		5A5A6C11B49DF39BE0177BE7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		AB7B3A04213D911BB33DB16D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.nomadsustaintech.panshi.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Panshi.app/Panshi";
+			};
+			name = Debug;
+		};
+		CFD8710500B7B70FAE3E5AB0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1FAD23F2B6C1B6D8C333BB58 /* Build configuration list for PBXNativeTarget "Panshi" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4BE15DD3E63D7F486EC535FF /* Debug */,
+				588BFA55F28BF6B5A0B93C48 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		63894D89188662B6C578408F /* Build configuration list for PBXNativeTarget "PanshiTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AB7B3A04213D911BB33DB16D /* Debug */,
+				0CD9EF12FB10B94AC1A55252 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B014A0A6A62055E3FD3EA1E0 /* Build configuration list for PBXProject "Panshi" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CFD8710500B7B70FAE3E5AB0 /* Debug */,
+				5A5A6C11B49DF39BE0177BE7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 79C35A35C96EAC84F5A10B93 /* Project object */;
+}

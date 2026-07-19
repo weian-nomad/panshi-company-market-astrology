@@ -68,7 +68,8 @@ test("server-renders and serves the complete app at the domain root", async () =
     assert.match(html, /<title>盤勢 · 企業命盤 × 股價時間線<\/title>/);
     assert.match(html, /把公司的時間/);
     assert.match(html, /開始對照/);
-    assert.match(html, /CASTING \/ 起盤/);
+    assert.match(html, /輸入股票代號，打開第一張公司盤/);
+    assert.match(html, /免費版每天還能查 3 檔不同股票/);
     assert.match(html, /日期是一級資料/);
     assert.match(html, /不構成投資、法律或財務建議/);
     assert.match(html, /property="og:image"/);
@@ -160,10 +161,10 @@ test("removes starter assets and keeps product-specific sources", async () => {
   assert.match(companyExplorer, /`\$\{APP_BASE_PATH\}\/api\/company\?/);
   assert.doesNotMatch(companyExplorer, /fetch\(`\/api\/company\?/);
   assert.match(companyExplorer, /InquiryWorkbench/);
-  assert.match(inquiryWorkbench, /問一個有日期的問題/);
-  assert.match(inquiryWorkbench, /考慮買進/);
-  assert.match(inquiryWorkbench, /已持有，考慮賣出/);
-  assert.match(inquiryWorkbench, /只想觀察/);
+  assert.match(inquiryWorkbench, /問一個有日期的研究問題/);
+  assert.match(inquiryWorkbench, /研究尚未持有的公司/);
+  assert.match(inquiryWorkbench, /回顧已持有的公司/);
+  assert.match(inquiryWorkbench, /只看日期脈絡/);
   assert.match(inquiryWorkbench, /不產生買賣、目標價或部位建議/);
   assert.match(inquiryWorkbench, /`\$\{APP_BASE_PATH\}\/api\/inquiry\?/);
   assert.match(dockerfile, /127\.0\.0\.1:3000\/api\/health/);

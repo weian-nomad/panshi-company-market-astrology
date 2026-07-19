@@ -41,6 +41,9 @@ next-env.d.ts
 /outputs/
 /work/
 /var/
+/ios/.build/
+xcuserdata/
+*.xcuserstate
 *.db
 *.db-shm
 *.db-wal

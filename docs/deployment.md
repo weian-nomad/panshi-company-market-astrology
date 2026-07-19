@@ -25,6 +25,8 @@ curl --fail http://127.0.0.1:3000/api/health
 | `SITE_URL` | production | Canonical public URL and social-card origin |
 | `PORT` | no | Container port; defaults to `3000` |
 | `MARKET_DB_PATH` | production | SQLite cache file path; defaults to `data/panshi-market.db` |
+| `APPLE_APP_ID` | App Store production | Numeric App Store app ID used to verify production StoreKit transaction JWS |
+| `APPLE_ENTITLEMENT_ONLINE_CHECKS` | no | Keep `true` in production; set `false` only for isolated verification tests |
 | `STUDIO_DB_PATH` | Studio monitoring | Shared Studio state database path |
 | `STUDIO_OUTPUT_ROOT` | Studio monitoring | Shared rendered-media volume path |
 | `STUDIO_REVIEW_TOKEN` | Studio monitoring | Strong password for the non-indexed monitoring console |
@@ -38,6 +40,7 @@ curl --fail http://127.0.0.1:3000/api/health
 正式環境把 TWSE(上市) + TPEx(上櫃) 全公司 7 年歷史 OHLCV 快取進本機 SQLite（`node:sqlite` 內建模組，無額外套件），避免每次請求即時打外部 API。
 
 - `MARKET_DB_PATH` 指到的 `.db` 檔案必須是**掛載 volume**、不能只存在 image 裡（容器重建/替換不能丟資料，回填要花約一小時，不该每次部署重跑）。
+- 同一個 SQLite 另保存匿名查詢額度、180 天請求帳本與不含使用者識別的問題目錄；備份與檔案權限要把它當成營運資料，不得提交到 repository。
 - 一次性回填：`npm run backfill:market`（可重複執行，已完成的 (market, date) 會跳過，中斷後重跑會從斷點繼續）。
 - 每日增量：`npm run update:market`（沿 ingest ledger 分批追上最新交易日，並修復近期缺口；跑在 daily cron/systemd timer）。
 - 兩支 script 都跑在 Next.js bundler 之外（純 Node ESM），import 用 `node --import ./scripts/register-path-alias.mjs <script>`（處理 `@/` alias 與 JSON import-attribute）。

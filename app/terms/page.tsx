@@ -21,7 +21,7 @@ export default function TermsPage() {
       <article className={styles.article}>
         <aside className={styles.aside}>
           <span className={styles.eyebrow}>TERMS OF USE</span>
-          <span className={styles.updated}>生效日期<br />2026.07.13</span>
+          <span className={styles.updated}>生效日期<br />2026.07.19</span>
         </aside>
 
         <div className={styles.content}>
@@ -33,6 +33,13 @@ export default function TermsPage() {
             <p>盤勢依公司成立日或首日交易建立象徵性命盤，並把特定日期的組態與公開市場歷史資料對齊。網站與「今日五盤」影片可能呈現統計分布、反例、公司事件、資料缺口與文化解讀。</p>
             <p>星象重合不代表因果。歷史案例也不是獨立實驗，無法保證未來重演。</p>
             <p>「今日五盤」Studio 使用 YouTube API Services 把成片發布到指定頻道。連結或操作頻道的使用者除本條款外，也同意遵守 <a href="https://www.youtube.com/t/terms" target="_blank" rel="noreferrer">YouTube 服務條款</a>；授權資料的使用與刪除方式見 <Link href="/privacy">隱私與資料</Link>。</p>
+          </section>
+
+          <section className={styles.section}>
+            <h2>免費版、廣告與盤勢 Pro</h2>
+            <p>免費版每天可閱讀今日五盤，另外查 3 檔不同股票；同一檔重查不重扣，額度在臺北時間午夜重置。免費版可能在完成一段研究後顯示廣告；較長的獎勵式影片由你自行選擇是否觀看。</p>
+            <p>盤勢 Pro 取消股票檔數限制，提供完整歷史案例、較完整的分布與研究工作區，並移除廣告。這些功能增加的是資料檢視範圍與深度，不會提供個股評級、未來價格方向或交易指令。</p>
+            <p>符合資格的新訂閱者可使用七天免費試用。試用或付費期結束後，App 會回到每日五盤加 3 檔額外查詢。訂閱由 Apple 自動續訂與收費；可在 Apple 帳號設定中管理或取消，退款依 Apple 與適用法令辦理。購買前顯示的 App Store 價格與條件為準。</p>
           </section>
 
           <section className={styles.section}>

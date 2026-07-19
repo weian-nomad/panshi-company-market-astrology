@@ -7,6 +7,7 @@ import type {
   UpcomingTransitEvent,
 } from "@/lib/astrology";
 import { APP_BASE_PATH } from "@/lib/app-config";
+import type { QueryUsage } from "@/lib/inquiry-types";
 import Link from "next/link";
 import {
   FormEvent,
@@ -65,6 +66,7 @@ type CompanyPayload = {
     price: string;
     fetchedAt: string;
   };
+  usage?: QueryUsage;
 };
 
 const RANGE_SESSIONS: Record<RangeKey, number> = {
@@ -553,10 +555,12 @@ function eventReading(event: TransitEvent | null) {
 }
 
 export function CompanyExplorer() {
-  const [query, setQuery] = useState("2330");
+  const [query, setQuery] = useState("");
   const [payload, setPayload] = useState<CompanyPayload | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [queryUsage, setQueryUsage] = useState<QueryUsage | null>(null);
+  const [limitReached, setLimitReached] = useState(false);
   const [anchorKey, setAnchorKey] = useState<AnchorKey>("listing");
   const [range, setRange] = useState<RangeKey>("1Y");
   const [lens, setLens] = useState<LensKey>(() => {
@@ -583,7 +587,7 @@ export function CompanyExplorer() {
   ) => {
     if (
       inquiryDirtyRef.current &&
-      !window.confirm("這份決策記錄尚未儲存。切換公司會清空目前文字，要繼續嗎？")
+      !window.confirm("這份研究記錄尚未儲存。切換公司會清空目前文字，要繼續嗎？")
     ) {
       setQuery(currentSymbolRef.current);
       return;
@@ -594,6 +598,7 @@ export function CompanyExplorer() {
     abortRef.current = controller;
     setLoading(true);
     setError("");
+    setLimitReached(false);
     setPayload(null);
     setSelectedEventId(null);
 
@@ -601,11 +606,18 @@ export function CompanyExplorer() {
       const response = await fetch(`${APP_BASE_PATH}/api/company?symbol=${encodeURIComponent(symbol)}&months=13`, {
         signal: controller.signal,
       });
-      const data = await response.json().catch(() => null) as CompanyPayload | { error?: string } | null;
+      const data = await response.json().catch(() => null) as CompanyPayload | {
+        error?: string;
+        code?: string;
+        usage?: QueryUsage;
+      } | null;
       if (!response.ok || !data || !("company" in data)) {
+        if (data && "usage" in data && data.usage) setQueryUsage(data.usage);
+        if (data && "code" in data) setLimitReached(data.code === "FREE_DAILY_LIMIT_REACHED");
         throw new Error((data && "error" in data && data.error) || "資料暫時無法取得");
       }
       setPayload(data);
+      setQueryUsage(data.usage || null);
       setQuery(data.company.symbol);
       currentSymbolRef.current = data.company.symbol;
       const nextAnchor = options?.anchor || "listing";
@@ -624,13 +636,16 @@ export function CompanyExplorer() {
     const params = new URLSearchParams(window.location.search);
     const initialSymbol = /^\d{4,6}$/.test(params.get("symbol") || "")
       ? params.get("symbol")!
-      : "2330";
+      : null;
     const initialAnchor = params.get("anchor") === "established" ? "established" : "listing";
     const initialRange = (["3M", "6M", "1Y"] as string[]).includes(params.get("range") || "")
       ? params.get("range") as RangeKey
       : "1Y";
     const bootstrap = window.setTimeout(() => {
-      void loadCompany(initialSymbol, { anchor: initialAnchor, range: initialRange });
+      if (initialSymbol) {
+        setQuery(initialSymbol);
+        void loadCompany(initialSymbol, { anchor: initialAnchor, range: initialRange });
+      }
     }, 0);
     return () => {
       window.clearTimeout(bootstrap);
@@ -655,6 +670,7 @@ export function CompanyExplorer() {
       setError("請輸入 4 至 6 碼上市股票代號。");
       return;
     }
+    setQuery(symbol);
     void loadCompany(symbol);
   };
 
@@ -675,7 +691,7 @@ export function CompanyExplorer() {
   const setAnchor = (key: AnchorKey) => {
     if (
       inquiryDirtyRef.current &&
-      !window.confirm("這份決策記錄尚未儲存。切換命盤基準會清空目前文字，要繼續嗎？")
+      !window.confirm("這份研究記錄尚未儲存。切換命盤基準會清空目前文字，要繼續嗎？")
     ) return;
     inquiryDirtyRef.current = false;
     setAnchorKey(key);
@@ -810,6 +826,7 @@ export function CompanyExplorer() {
                   key={item.symbol}
                   type="button"
                   onClick={() => {
+                    setQuery(item.symbol);
                     void loadCompany(item.symbol);
                   }}
                 >
@@ -817,6 +834,15 @@ export function CompanyExplorer() {
                 </button>
               ))}
             </div>
+            <p className={`query-quota-note${queryUsage?.isDailyFive ? " is-daily-five" : ""}`}>
+              {queryUsage
+                ? queryUsage.tier === "pro"
+                  ? "盤勢 Pro：股票查詢不限檔數。"
+                  : queryUsage.isDailyFive
+                    ? `今日五盤不扣額度，今天還可查 ${queryUsage.remaining ?? 0} 檔。`
+                    : `今日額外查詢 ${queryUsage.used}／${queryUsage.dailyLimit} 檔；同一檔重看不重扣。`
+                : "今日五盤不扣額度。免費版每天還能查 3 檔不同股票。"}
+            </p>
           </form>
 
           <div className="hero-proof">
@@ -834,13 +860,25 @@ export function CompanyExplorer() {
           <div className="error-banner" role="alert">
             <span aria-hidden="true">!</span>
             <div><b>這次沒有載入成功</b><p>{error}</p></div>
-            <button type="button" onClick={() => void loadCompany(query || "2330")}>重試</button>
+            {limitReached
+              ? <a href="#methodology">查看使用方式</a>
+              : <button type="button" onClick={() => void loadCompany(query)}>重試</button>}
           </div>
         ) : null}
       </div>
 
       <section className="workspace" id="workspace">
         {loading && !payload ? <LoadingDashboard /> : null}
+
+        {!loading && !payload && !error ? (
+          <div className="query-start-card">
+            <span aria-hidden="true">問</span>
+            <div>
+              <h2>輸入股票代號，打開第一張公司盤</h2>
+              <p>今日五盤直接看。其他股票每天可查 3 檔，同一檔重看不會再扣額度。</p>
+            </div>
+          </div>
+        ) : null}
 
         {payload && anchor ? (
           <>
@@ -934,6 +972,7 @@ export function CompanyExplorer() {
               anchorLabel={anchor.label}
               anchorDate={anchor.date}
               anchorPrecisionLabel={anchor.precisionLabel}
+              usage={payload.usage || queryUsage}
               onJournalDirtyChange={setInquiryDirty}
             />
 

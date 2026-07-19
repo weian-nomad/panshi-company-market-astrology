@@ -1,0 +1,84 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "zh_Hant",
+        "policyText" : "",
+        "policyURL" : "https://panshi.nomadsustaintech.com/terms"
+      }
+    ]
+  },
+  "identifier" : "9BEB1668-70CE-47C7-96BC-21A68879F81B",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : true,
+    "_billingIssuesEnabled" : false,
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_locale" : "zh_Hant",
+    "_renewalBillingIssuesEnabled" : false,
+    "_storefront" : "TWN",
+    "_storeKitErrors" : [
+
+    ],
+    "_timeRate" : 0
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "2F08A6CA-B989-44E8-84E7-B98377C1DB3D",
+      "localizations" : [
+        {
+          "description" : "完整歷史檔案與無廣告研究工作區。",
+          "displayName" : "盤勢 Pro",
+          "locale" : "zh_Hant"
+        }
+      ],
+      "name" : "Panshi Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "190",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "55F0FA11-E8FD-475A-A6F5-A5793D1F7DF3",
+          "introductoryOffer" : {
+            "internalID" : "6A7EE701-D849-4FB6-83B3-C1CE20862B17",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
+          "localizations" : [
+            {
+              "description" : "展開完整歷史案例與分布，移除廣告；符合資格者可免費試用七天。",
+              "displayName" : "盤勢 Pro 月繳",
+              "locale" : "zh_Hant"
+            }
+          ],
+          "productID" : "com.nomadsustaintech.panshi.pro.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Panshi Pro Monthly",
+          "subscriptionGroupID" : "2F08A6CA-B989-44E8-84E7-B98377C1DB3D",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

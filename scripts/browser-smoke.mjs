@@ -199,7 +199,7 @@ try {
     setValue.call(target, weekend);
     target.dispatchEvent(new Event('input', { bubbles: true }));
     target.dispatchEvent(new Event('change', { bubbles: true }));
-    const buy = document.querySelector('input[name="inquiry-intent"][value="consider_buy"]');
+    const buy = document.querySelector('input[name="inquiry-intent"][value="new_position_research"]');
     buy.click();
     const five = document.querySelector('input[name="inquiry-horizon"][value="5"]');
     five.click();
@@ -266,7 +266,7 @@ try {
     (state) => state.saved > 0 && state.feedback.includes("已記下"),
     sessionId,
   );
-  assert.equal(savedState.first.intent, "consider_buy");
+  assert.equal(savedState.first.intent, "new_position_research");
   assert.equal(savedState.first.horizon, 5);
   assert.equal(savedState.first.reason, "營收與訂單趨勢符合原先假設");
   assert.equal(savedState.first.disconfirmingEvidence, "法說下修展望時重新檢查");

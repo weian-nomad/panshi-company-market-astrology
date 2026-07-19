@@ -31,6 +31,9 @@ const nextConfig: NextConfig = {
     // own transitive runtime files.
     "next-server": ["node_modules/.cache/**/*"],
   },
+  outputFileTracingIncludes: {
+    "/*": ["assets/apple-pki/*.cer"],
+  },
   poweredByHeader: false,
   turbopack: {
     root: process.cwd(),

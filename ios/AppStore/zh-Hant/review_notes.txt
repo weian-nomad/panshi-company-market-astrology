@@ -1,0 +1,12 @@
+No account or sign-in is required.
+
+Free path:
+1. Open 今日 to view the latest published five-item research edition.
+2. Daily Five symbols never consume the free query allowance. Open 觀盤 and search a symbol outside Daily Five; the free tier allows three distinct extra symbols per Taipei calendar day. Reopening the same symbol does not consume another slot.
+3. Open 問盤, choose a date, and tap 整理這一天的研究檔案. The trading-session check, symbolic description, sample count, positive/negative case count, median, public events, and local journal remain free.
+
+Pro removes the three-symbol daily limit, expands the full case-by-case historical dossier, and removes ads. Dismissing the paywall or allowing a trial/subscription to expire returns to Daily Five plus three extra symbols per day. It never deletes journal entries.
+
+The auto-renewable product ID is com.nomadsustaintech.panshi.pro.monthly. Eligible new subscribers receive a 7-day free introductory offer. Purchase and restore use StoreKit 2. The app sends the verified StoreKit transaction JWS to the server; the server validates the product, expiry, bundle ID, and appAccountToken before allowing unlimited queries.
+
+The app does not produce buy, sell, hold, target-price, stop-loss, leverage, allocation, rating, or future-direction outputs. It is a cultural and historical reference experience.
