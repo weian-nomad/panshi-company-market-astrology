@@ -1,0 +1,12 @@
+No account or sign-in is required.
+
+Free path:
+1. Open 今日 to view the latest published five-item research edition.
+2. Open 觀盤, search 2330, and inspect the company chart and public market history.
+3. Open 問盤, choose a date, and tap 整理這一天的研究檔案. The trading-session check, symbolic description, sample count, positive/negative case count, median, public events, and local journal remain free.
+
+Pro only expands the full case-by-case historical dossier and removes ads. Dismissing the paywall or allowing a trial/subscription to expire returns to the usable free tier. It never blocks the app or deletes journal entries.
+
+The auto-renewable product ID is com.nomadsustaintech.panshi.pro.monthly. Eligible new subscribers receive a 7-day free introductory offer. Purchase and restore use StoreKit 2.
+
+The app does not produce buy, sell, hold, target-price, stop-loss, leverage, allocation, rating, or future-direction outputs. It is a cultural and historical reference experience.

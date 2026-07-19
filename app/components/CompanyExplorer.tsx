@@ -583,7 +583,7 @@ export function CompanyExplorer() {
   ) => {
     if (
       inquiryDirtyRef.current &&
-      !window.confirm("這份決策記錄尚未儲存。切換公司會清空目前文字，要繼續嗎？")
+      !window.confirm("這份研究記錄尚未儲存。切換公司會清空目前文字，要繼續嗎？")
     ) {
       setQuery(currentSymbolRef.current);
       return;
@@ -675,7 +675,7 @@ export function CompanyExplorer() {
   const setAnchor = (key: AnchorKey) => {
     if (
       inquiryDirtyRef.current &&
-      !window.confirm("這份決策記錄尚未儲存。切換命盤基準會清空目前文字，要繼續嗎？")
+      !window.confirm("這份研究記錄尚未儲存。切換命盤基準會清空目前文字，要繼續嗎？")
     ) return;
     inquiryDirtyRef.current = false;
     setAnchorKey(key);

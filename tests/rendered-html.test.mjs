@@ -160,10 +160,10 @@ test("removes starter assets and keeps product-specific sources", async () => {
   assert.match(companyExplorer, /`\$\{APP_BASE_PATH\}\/api\/company\?/);
   assert.doesNotMatch(companyExplorer, /fetch\(`\/api\/company\?/);
   assert.match(companyExplorer, /InquiryWorkbench/);
-  assert.match(inquiryWorkbench, /問一個有日期的問題/);
-  assert.match(inquiryWorkbench, /考慮買進/);
-  assert.match(inquiryWorkbench, /已持有，考慮賣出/);
-  assert.match(inquiryWorkbench, /只想觀察/);
+  assert.match(inquiryWorkbench, /問一個有日期的研究問題/);
+  assert.match(inquiryWorkbench, /研究尚未持有的公司/);
+  assert.match(inquiryWorkbench, /回顧已持有的公司/);
+  assert.match(inquiryWorkbench, /只看日期脈絡/);
   assert.match(inquiryWorkbench, /不產生買賣、目標價或部位建議/);
   assert.match(inquiryWorkbench, /`\$\{APP_BASE_PATH\}\/api\/inquiry\?/);
   assert.match(dockerfile, /127\.0\.0\.1:3000\/api\/health/);

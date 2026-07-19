@@ -4,7 +4,7 @@ import styles from "../legal.module.css";
 
 export const metadata: Metadata = {
   title: "隱私與資料使用",
-  description: "盤勢如何處理研究查詢、本機記錄、頻道發布授權與資料刪除。",
+  description: "盤勢如何處理研究查詢、本機記錄、廣告、App 訂閱、頻道發布授權與資料刪除。",
 };
 
 export default function PrivacyPage() {
@@ -21,12 +21,12 @@ export default function PrivacyPage() {
       <article className={styles.article}>
         <aside className={styles.aside}>
           <span className={styles.eyebrow}>DATA PRACTICE</span>
-          <span className={styles.updated}>生效日期<br />2026.07.13</span>
+          <span className={styles.updated}>生效日期<br />2026.07.19</span>
         </aside>
 
         <div className={styles.content}>
           <h1>你留下什麼，<br />我們就說清楚。</h1>
-          <p className={styles.lede}>盤勢不要求公開網站使用者註冊，也不販售個人資料。研究頁只處理完成查詢所需的輸入；你主動保存的觀察與決策記錄，留在自己的瀏覽器。</p>
+          <p className={styles.lede}>盤勢不要求公開網站或 iPhone App 使用者註冊，也不販售個人資料。研究頁只處理完成查詢所需的輸入；你主動保存的觀察與研究記錄，留在自己的裝置。</p>
 
           <section className={styles.section}>
             <h2>公開研究工具處理的資料</h2>
@@ -36,8 +36,20 @@ export default function PrivacyPage() {
 
           <section className={styles.section}>
             <h2>留在你裝置上的資料</h2>
-            <p>收藏公司、收藏日期，以及你在「決策記錄」寫下的理由、反證條件與回看日期，會存進瀏覽器的 localStorage，最多保留最近 50 筆決策記錄。盤勢不會把這些文字同步到伺服器。</p>
-            <p>你可以在產品介面刪除個別記錄，或清除本網站的瀏覽器資料，一次移除全部本機內容。清除後無法由盤勢復原。</p>
+            <p>收藏公司、收藏日期，以及你在「研究記錄」或 iPhone「觀察簿」寫下的假說、反證條件與回看日期，會存進瀏覽器 localStorage 或 App 的本機儲存空間。盤勢不會把這些文字同步到伺服器。</p>
+            <p>你可以在產品介面刪除個別記錄，或清除網站資料、刪除 App，一次移除相應的本機內容。清除後無法由盤勢復原。若你開啟回看提醒，iPhone 會另外保存建立通知所需的日期與文字；通知權限可隨時在系統設定關閉。</p>
+          </section>
+
+          <section className={styles.section}>
+            <h2>免費版廣告與自願解鎖</h2>
+            <p>iPhone 免費版會在完成一段研究後的自然斷點顯示廣告。較長的獎勵式影片必須由你主動選擇觀看；看完後，App 只在本機記下一筆有期限的解鎖狀態。拒絕或關閉廣告不會阻止你使用公司盤、基本解讀、今日五盤、日期問盤與觀察簿。</p>
+            <p>盤勢預設不要求 Apple 的跨 App 追蹤權限，也不把你的公司查詢、收藏或筆記交給廣告服務建立跨 App 側寫。廣告傳送與防濫用仍可能處理 IP 位址、裝置與 App 基本資訊、廣告曝光、關閉或完成狀態。正式啟用任何廣告服務前，我們會依實際整合更新本頁、App 隱私標籤與必要的系統同意流程。</p>
+          </section>
+
+          <section className={styles.section}>
+            <h2>盤勢 Pro 與 Apple 訂閱</h2>
+            <p>購買、七天免費試用、續訂、取消、退款與付款資料由 Apple 處理。盤勢只從 App Store 取得產品資訊、試用資格與訂閱是否有效，不會收到完整信用卡或銀行資料。</p>
+            <p>有效試用或訂閱會開啟完整歷史檔案並移除廣告。取消或到期後，App 會回到仍可使用的免費版；本機觀察簿不會因此被刪除。</p>
           </section>
 
           <section className={styles.section}>
@@ -62,7 +74,7 @@ export default function PrivacyPage() {
 
           <section className={styles.section}>
             <h2>刪除、詢問與更新</h2>
-            <p>本機決策記錄可由你直接刪除。若要詢問營運紀錄、撤銷頻道授權或要求刪除由 Nomad 控制的資料，可在公開 repository 的 <a href="https://github.com/weian-nomad/panshi-company-market-astrology/issues" target="_blank" rel="noreferrer">Issues</a> 提出不含敏感資訊的請求；需要驗證身分時，我們會改用私下管道處理。</p>
+            <p>本機研究記錄可由你直接刪除。若要詢問營運紀錄、撤銷頻道授權或要求刪除由 Nomad 控制的資料，可在公開 repository 的 <a href="https://github.com/weian-nomad/panshi-company-market-astrology/issues" target="_blank" rel="noreferrer">Issues</a> 提出不含敏感資訊的請求；需要驗證身分時，我們會改用私下管道處理。</p>
             <p>政策有實質變更時，本頁會更新生效日期。新增資料用途前，我們會先修改說明，不把既有資料悄悄改作不相容的用途。</p>
           </section>
         </div>

@@ -19,10 +19,16 @@ import {
 const STORAGE_KEY = "panshi:inquiries:v1";
 
 const INTENT_LABELS: Record<InquiryIntent, string> = {
-  consider_buy: "考慮買進",
-  consider_sell: "已持有，考慮賣出",
-  observe: "只想觀察",
+  new_position_research: "研究尚未持有的公司",
+  held_position_review: "回顧已持有的公司",
+  observe: "只看日期脈絡",
 };
+
+function normalizeIntent(value: unknown): InquiryIntent {
+  if (value === "new_position_research" || value === "consider_buy") return "new_position_research";
+  if (value === "held_position_review" || value === "consider_sell") return "held_position_review";
+  return "observe";
+}
 
 const HORIZONS: InquiryHorizon[] = [5, 20, 60];
 
@@ -131,7 +137,12 @@ function isSavedInquiry(value: unknown): value is SavedInquiry {
 function readSavedInquiries() {
   try {
     const value: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    return Array.isArray(value) ? value.filter(isSavedInquiry).slice(0, 50) : [];
+    return Array.isArray(value)
+      ? value.filter(isSavedInquiry).slice(0, 50).map((item) => ({
+          ...item,
+          intent: normalizeIntent(item.intent),
+        }))
+      : [];
   } catch {
     return [];
   }
@@ -207,7 +218,7 @@ function SavedInquiryHistory({
                 <p><b>改變看法的條件</b>{item.disconfirmingEvidence || "未留下條件"}</p>
               </div>
               <div className="inquiry-history-actions">
-                <button type="button" onClick={() => onRestore(item)}>沿用情境</button>
+                <button type="button" onClick={() => onRestore(item)}>沿用研究視角</button>
                 <button type="button" disabled={Boolean(item.reviewedAt)} onClick={() => onReview(item.id)}>
                   {item.reviewedAt ? "已回看" : "標為已回看"}
                 </button>
@@ -302,7 +313,7 @@ export function InquiryWorkbench({
   }, [hasUnsavedJournal, onJournalDirtyChange]);
 
   const confirmJournalDiscard = () => !hasUnsavedJournal || window.confirm(
-    "這份決策記錄尚未儲存。繼續會清空目前文字，要繼續嗎？",
+    "這份研究記錄尚未儲存。繼續會清空目前文字，要繼續嗎？",
   );
 
   const submitInquiry = async (event: FormEvent<HTMLFormElement>) => {
@@ -438,7 +449,7 @@ export function InquiryWorkbench({
         <div className="inquiry-seal" aria-hidden="true"><span>問</span></div>
         <div>
           <span className="inquiry-label">問盤</span>
-          <h3 id="inquiry-title">問一個有日期的問題</h3>
+            <h3 id="inquiry-title">問一個有日期的研究問題</h3>
           <p>盤勢不告訴你該買什麼。它把象徵、歷史證據與資料缺口拆開，列出做決定前仍需核對的資料與反例。</p>
           <p className="inquiry-anchor-context"><b>目前命盤基準</b>{anchorLabel}，{formatDate(anchorDate)}，{anchorPrecisionLabel}</p>
         </div>
@@ -460,8 +471,8 @@ export function InquiryWorkbench({
         </div>
 
         <fieldset className="inquiry-choice-field inquiry-choice-field--intent">
-          <legend>你現在的情境</legend>
-          <small>情境只會寫進記錄，不會改變證據計算。</small>
+          <legend>研究視角</legend>
+          <small>視角只會寫進本機記錄，不會改變證據計算或產生行動答案。</small>
           <div>
             {(Object.keys(INTENT_LABELS) as InquiryIntent[]).map((key) => (
               <label key={key}>
@@ -547,7 +558,7 @@ export function InquiryWorkbench({
             </div>
             <dl>
               <div><dt>目標日</dt><dd>{formatDate(submitted.targetDate)}</dd></div>
-              <div><dt>情境</dt><dd>{INTENT_LABELS[submitted.intent]}</dd></div>
+              <div><dt>研究視角</dt><dd>{INTENT_LABELS[submitted.intent]}</dd></div>
               <div><dt>歷史對照期</dt><dd>{submitted.horizon} 個交易日</dd></div>
             </dl>
             <strong className={`inquiry-observation inquiry-observation--${study?.status || "no-aspect"}`}>
@@ -689,16 +700,16 @@ export function InquiryWorkbench({
             <aside className="inquiry-journal" aria-labelledby="inquiry-journal-title">
               <div className="inquiry-journal-heading">
                 <span className="inquiry-layer-mark" aria-hidden="true">記</span>
-                <div><span>決策記錄</span><h4 id="inquiry-journal-title">把現在的理由留給未來的你</h4></div>
+                <div><span>研究記錄</span><h4 id="inquiry-journal-title">把現在的假說留給未來的資料</h4></div>
               </div>
               <form onSubmit={saveInquiry}>
-                <label htmlFor="inquiry-reason">我為什麼想採取這個動作？</label>
+                <label htmlFor="inquiry-reason">我正在觀察什麼？</label>
                 <textarea
                   id="inquiry-reason"
                   value={reason}
                   required
                   rows={4}
-                  placeholder="寫下可被驗證的理由，不只是一種感覺。"
+                  placeholder="寫下可被驗證的假說，不只是一種感覺。"
                   onChange={(event) => {
                     setReason(event.target.value);
                     setJournalSaved(false);

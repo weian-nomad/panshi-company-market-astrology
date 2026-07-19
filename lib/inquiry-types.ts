@@ -2,7 +2,7 @@ import type { TransitConfiguration } from "@/lib/astrology";
 import type { PriceHistory, TradingDateResolution } from "@/lib/company-data";
 
 export type InquiryAnchorKey = "listing" | "established";
-export type InquiryIntent = "consider_buy" | "consider_sell" | "observe";
+export type InquiryIntent = "new_position_research" | "held_position_review" | "observe";
 export type InquiryHorizon = 5 | 20 | 60;
 
 export function isInquiryAnchor(value: string): value is InquiryAnchorKey {
