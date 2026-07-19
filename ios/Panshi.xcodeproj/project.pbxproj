@@ -32,6 +32,7 @@
 		B3EB6387DB9C4DB2A6A96C24 /* ResearchLanguagePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BCFE9835284292F73A5C426 /* ResearchLanguagePolicy.swift */; };
 		C4B3E029F05A637E34AC797C /* APIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE10DBA415A74DCB26B63A42 /* APIModels.swift */; };
 		CD05BF803D7F199357D2FD28 /* NatalInstrumentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FE854770C0EFF95D1066287 /* NatalInstrumentView.swift */; };
+		D45E5A7EB63B82004321DCA0 /* QueryIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 369505BA5EB0F10176DF94DF /* QueryIdentity.swift */; };
 		E5B270F266A4D064D6263320 /* ReviewNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54A1C513C51AF84347726054 /* ReviewNotificationService.swift */; };
 		EF28CF15935B0BD093D7A1F8 /* PanshiDateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 852B5394740282C706FFBADF /* PanshiDateTests.swift */; };
 		FD199E514C88554EA7A337AB /* ResearchLanguagePolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1947027FB4299D4CF1CD9BC3 /* ResearchLanguagePolicyTests.swift */; };
@@ -55,6 +56,7 @@
 		207926D2F5939A1E8E5E0865 /* PanshiDisplay.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = PanshiDisplay.otf; sourceTree = "<group>"; };
 		21D0427AFA3F10C72E0C1E8B /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		2E3D7AE96E1F872A72F108ED /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
+		369505BA5EB0F10176DF94DF /* QueryIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryIdentity.swift; sourceTree = "<group>"; };
 		3BCFE9835284292F73A5C426 /* ResearchLanguagePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResearchLanguagePolicy.swift; sourceTree = "<group>"; };
 		3FE854770C0EFF95D1066287 /* NatalInstrumentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NatalInstrumentView.swift; sourceTree = "<group>"; };
 		4CA951502C72890BABBB5D46 /* InquiryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InquiryView.swift; sourceTree = "<group>"; };
@@ -122,6 +124,7 @@
 				86B705FA038F24840E05D9E0 /* APIClient.swift */,
 				FE88B5D8862C35511789CC2E /* DailyResearchStore.swift */,
 				DA71A1A5348D5FFE84D09DA0 /* JournalStore.swift */,
+				369505BA5EB0F10176DF94DF /* QueryIdentity.swift */,
 				3BCFE9835284292F73A5C426 /* ResearchLanguagePolicy.swift */,
 				54A1C513C51AF84347726054 /* ReviewNotificationService.swift */,
 				B18CEF51ED44576D3B4A5A47 /* SubscriptionStore.swift */,
@@ -323,6 +326,7 @@
 				AF34F6C1232E3946EECF3DAD /* PaywallView.swift in Sources */,
 				3AD6C8F722E8D22E4678D83F /* PersistenceModels.swift in Sources */,
 				AA334C196BA8327D179A1B07 /* PriceChartView.swift in Sources */,
+				D45E5A7EB63B82004321DCA0 /* QueryIdentity.swift in Sources */,
 				B3EB6387DB9C4DB2A6A96C24 /* ResearchLanguagePolicy.swift in Sources */,
 				E5B270F266A4D064D6263320 /* ReviewNotificationService.swift in Sources */,
 				6F66A5446F489EBE47B44DF1 /* RootTabView.swift in Sources */,

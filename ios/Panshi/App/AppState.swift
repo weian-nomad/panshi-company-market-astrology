@@ -25,17 +25,14 @@ final class AppState {
     var selectedAnchor: AnchorKey = .listing
     var company: CompanyPayload?
     var companyState: LoadState = .idle
+    var queryUsage: QueryUsage?
+    var reachedFreeDailyLimit = false
     var isShowingPaywall = false
 
     private let api: APIClient
 
     init(api: APIClient = .shared) {
         self.api = api
-    }
-
-    func loadInitialCompanyIfNeeded() async {
-        guard company == nil, companyState != .loading else { return }
-        await loadCompany(symbol: selectedSymbol)
     }
 
     func search() async {
@@ -49,12 +46,18 @@ final class AppState {
 
     func loadCompany(symbol: String) async {
         companyState = .loading
+        reachedFreeDailyLimit = false
         do {
             let payload = try await api.company(symbol: symbol)
             selectedSymbol = payload.company.symbol
             searchText = payload.company.symbol
             company = payload
+            queryUsage = payload.usage
             companyState = .ready
+        } catch APIClientError.freeDailyLimit(let usage) {
+            queryUsage = usage
+            reachedFreeDailyLimit = true
+            companyState = .failed(APIClientError.freeDailyLimit(usage).errorDescription ?? "今日額度已用完。")
         } catch {
             companyState = .failed(error.panshiUserFacingMessage)
         }

@@ -68,7 +68,8 @@ test("server-renders and serves the complete app at the domain root", async () =
     assert.match(html, /<title>盤勢 · 企業命盤 × 股價時間線<\/title>/);
     assert.match(html, /把公司的時間/);
     assert.match(html, /開始對照/);
-    assert.match(html, /CASTING \/ 起盤/);
+    assert.match(html, /輸入股票代號，打開第一張公司盤/);
+    assert.match(html, /免費版每天還能查 3 檔不同股票/);
     assert.match(html, /日期是一級資料/);
     assert.match(html, /不構成投資、法律或財務建議/);
     assert.match(html, /property="og:image"/);

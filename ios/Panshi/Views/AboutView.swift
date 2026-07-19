@@ -49,8 +49,8 @@ struct AboutView: View {
                         .foregroundStyle(PanshiTheme.brass)
                 }
                 Text(subscription.isPro
-                     ? "完整歷史研究已開啟；有效訂閱與試用期間不顯示廣告。"
-                     : "公司盤、基本解讀、今日五盤、日期問盤與觀察簿都能持續免費使用；訂閱不是使用 App 的前提。")
+                     ? "股票查詢不限檔數，完整歷史研究已開啟；有效訂閱與試用期間不顯示廣告。"
+                     : "今日五盤可直接閱讀，每天還能查 3 檔不同股票；同一檔重看不會再扣額度。")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
@@ -101,6 +101,9 @@ struct AboutView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Text("預設不使用你的查詢、收藏或筆記建立跨 App 廣告側寫。若未來啟用追蹤，會先顯示 Apple 的系統同意視窗。")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Text("查詢股票與問題條件會送到伺服器，供每日額度核對與重複問題統計；安裝識別碼只保存不可逆雜湊，觀察簿文字不上傳。")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 if ads.isConfigured {

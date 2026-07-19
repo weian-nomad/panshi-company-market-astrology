@@ -21,6 +21,7 @@ import type {
   InquiryPayload,
 } from "@/lib/inquiry-types";
 import { isInquiryAnchor } from "@/lib/inquiry-types";
+import { assessQueryAccess, attachQueryCookie } from "@/lib/query-access";
 
 export const runtime = "nodejs";
 
@@ -44,6 +45,7 @@ function taipeiToday() {
 }
 
 export async function GET(request: Request) {
+  let access: Awaited<ReturnType<typeof assessQueryAccess>> | null = null;
   try {
     const url = new URL(request.url);
     const symbol = String(url.searchParams.get("symbol") || "").trim();
@@ -84,6 +86,24 @@ export async function GET(request: Request) {
         { error: `找不到上市櫃公司 ${symbol}，請確認股票代號。` },
         { status: 404 },
       );
+    }
+    access = await assessQueryAccess(request, {
+      kind: "inquiry",
+      symbol,
+      requestedDate,
+      anchor,
+      horizon: horizonValue,
+    });
+    if (!access.usage.allowed) {
+      const response = NextResponse.json(
+        {
+          error: "今天 3 檔額外查詢已用完。今日五盤仍可閱讀，明天會重新計算額度。",
+          code: "FREE_DAILY_LIMIT_REACHED",
+          usage: access.usage,
+        },
+        { status: 429, headers: { "Cache-Control": "private, no-store" } },
+      );
+      return attachQueryCookie(response, access);
     }
 
     const listingDate = compactDate(row.listingDate);
@@ -171,13 +191,16 @@ export async function GET(request: Request) {
       },
     };
 
-    return NextResponse.json(payload, {
-      headers: {
-        "Cache-Control": "public, s-maxage=900, stale-while-revalidate=1800",
-      },
+    const response = NextResponse.json({ ...payload, usage: access.usage }, {
+      headers: { "Cache-Control": "private, no-store" },
     });
+    return attachQueryCookie(response, access);
   } catch (error) {
     const message = error instanceof Error ? error.message : "問盤資料暫時無法取得";
-    return NextResponse.json({ error: message }, { status: 502 });
+    const response = NextResponse.json(
+      { error: message },
+      { status: 502, headers: { "Cache-Control": "private, no-store" } },
+    );
+    return access ? attachQueryCookie(response, access) : response;
   }
 }

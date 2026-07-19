@@ -53,7 +53,9 @@ final class SubscriptionStore {
         isLoading = true
         defer { isLoading = false }
         do {
-            switch try await product.purchase() {
+            switch try await product.purchase(options: [
+                .appAccountToken(QueryIdentity.installationID)
+            ]) {
             case .success(let verification):
                 let transaction = try verified(verification)
                 await transaction.finish()
@@ -85,14 +87,17 @@ final class SubscriptionStore {
 
     func refreshEntitlements() async {
         var active = false
+        var activeSignedTransaction: String?
         for await result in Transaction.currentEntitlements {
             guard let transaction = try? verified(result) else { continue }
             guard PanshiProducts.all.contains(transaction.productID),
                   transaction.revocationDate == nil else { continue }
             if let expiration = transaction.expirationDate, expiration <= .now { continue }
             active = true
+            activeSignedTransaction = result.jwsRepresentation
         }
         isPro = active
+        await EntitlementCredentialStore.shared.update(activeSignedTransaction)
     }
 
     private func verified<T>(_ result: VerificationResult<T>) throws -> T {

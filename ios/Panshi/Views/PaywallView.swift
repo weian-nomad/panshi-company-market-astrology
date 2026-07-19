@@ -21,7 +21,7 @@ struct PaywallView: View {
                             Text("把一張盤，\n追到歷史深處。")
                                 .font(PanshiFont.display(40, weight: .semibold))
                                 .foregroundStyle(PanshiTheme.paper)
-                            Text("免費版不是試看版：公司盤、基本解讀、今日五盤與觀察簿都能一直使用。Pro 把歷史檔案展開，並移除廣告。")
+                            Text("免費版每天可看今日五盤，再查 3 檔不同股票。Pro 取消檔數限制、展開歷史檔案，並移除廣告。")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
@@ -30,8 +30,8 @@ struct PaywallView: View {
                             VStack(alignment: .leading, spacing: 13) {
                                 Text("不訂閱，仍然可以")
                                     .panshiSectionTitle()
-                                freeBenefit("查每一間已收錄公司的公司盤與基本解讀")
-                                freeBenefit("每天看今日五盤與公開市場異動")
+                                freeBenefit("每天看今日五盤；這五檔不扣查詢額度")
+                                freeBenefit("每天再查 3 檔不同股票；同一檔重看不重扣")
                                 freeBenefit("問日期、看樣本摘要、正負案例數與中位數")
                                 freeBenefit("把假說、反證條件與回看日留在觀察簿")
                                 Text("免費版會在自然段落顯示廣告；不看自願式長廣告，也不影響以上功能。")
@@ -43,6 +43,7 @@ struct PaywallView: View {
                         PanshiCard {
                             VStack(alignment: .leading, spacing: 15) {
                                 benefit("無廣告閱讀", "試用與有效訂閱期間都不顯示廣告。", icon: "rectangle.slash")
+                                benefit("股票查詢不限檔數", "今日五盤之外，也能繼續打開其他公司盤。", icon: "infinity")
                                 benefit("完整歷史案例", "展開每筆日期、區間結果、分布與反例。", icon: "clock.arrow.circlepath")
                                 benefit("不中斷的研究工作流", "自由切換 D+5、D+20、D+60，不必逐份解鎖。", icon: "point.3.connected.trianglepath.dotted")
                             }
@@ -74,7 +75,7 @@ struct PaywallView: View {
                                 .foregroundStyle(PanshiTheme.midnight)
                                 .disabled(subscription.product == nil || subscription.isLoading)
 
-                                Text("訂閱會自動續訂；你可以在 Apple 帳號的訂閱設定中取消。取消或到期後，完整歷史檔案會收起，其他免費功能照常使用。")
+                                Text("訂閱會自動續訂；你可以在 Apple 帳號的訂閱設定中取消。取消或到期後，完整歷史檔案會收起，股票查詢回到每日 3 檔。")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }

@@ -5,6 +5,7 @@ enum APIClientError: LocalizedError, Sendable {
     case server(String)
     case unavailable
     case invalidResponse
+    case freeDailyLimit(QueryUsage)
 
     var errorDescription: String? {
         switch self {
@@ -16,6 +17,8 @@ enum APIClientError: LocalizedError, Sendable {
             "目前連不上盤勢資料。連線恢復後再試一次。"
         case .invalidResponse:
             "資料格式已更新，這個版本暫時無法顯示。"
+        case .freeDailyLimit:
+            "今天 3 檔額外查詢已用完。今日五盤仍可閱讀，明天會重新計算額度。"
         }
     }
 }
@@ -89,6 +92,13 @@ actor APIClient {
         var request = URLRequest(url: url)
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Panshi-iOS/1.0", forHTTPHeaderField: "User-Agent")
+        request.setValue(
+            QueryIdentity.installationID.uuidString.lowercased(),
+            forHTTPHeaderField: "X-Panshi-Installation-ID"
+        )
+        if let signedTransaction = await EntitlementCredentialStore.shared.current() {
+            request.setValue(signedTransaction, forHTTPHeaderField: "X-Panshi-Entitlement-JWS")
+        }
 
         let data: Data
         let response: URLResponse
@@ -104,9 +114,13 @@ actor APIClient {
             throw APIClientError.invalidResponse
         }
         guard (200..<300).contains(http.statusCode) else {
-            if let envelope = try? decoder.decode(APIErrorEnvelope.self, from: data),
-               !envelope.error.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                throw APIClientError.server(envelope.error)
+            if let envelope = try? decoder.decode(APIErrorEnvelope.self, from: data) {
+                if envelope.code == "FREE_DAILY_LIMIT_REACHED", let usage = envelope.usage {
+                    throw APIClientError.freeDailyLimit(usage)
+                }
+                if !envelope.error.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    throw APIClientError.server(envelope.error)
+                }
             }
             throw APIClientError.unavailable
         }

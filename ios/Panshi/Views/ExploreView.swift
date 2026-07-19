@@ -30,12 +30,19 @@ struct ExploreView: View {
 
                     switch state.companyState {
                     case .idle:
-                        LoadingCard(message: "正在準備第一張公司盤…")
+                        BoundaryNote(
+                            title: "先選一檔，再打開公司盤",
+                            text: "今日五盤不扣額度。免費版每天還能查 3 檔不同股票；同一檔重看不會再扣一次。"
+                        )
                     case .loading:
                         LoadingCard(message: "正在對齊公司資料與市場時間…")
                     case .failed(let message):
-                        FailureCard(message: message) {
-                            Task { await state.search() }
+                        if state.reachedFreeDailyLimit {
+                            queryLimitCard(state: state)
+                        } else {
+                            FailureCard(message: message) {
+                                Task { await state.search() }
+                            }
                         }
                     case .ready:
                         if let payload = state.company {
@@ -51,7 +58,6 @@ struct ExploreView: View {
         }
         .navigationTitle("觀盤")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await state.loadInitialCompanyIfNeeded() }
         .sensoryFeedback(.success, trigger: savePulse)
     }
 
@@ -94,8 +100,45 @@ struct ExploreView: View {
                         }
                     }
                 }
+
+                if let usage = state.queryUsage {
+                    Label(usageText(usage), systemImage: usage.isDailyFive ? "sparkles" : "circle.grid.3x3")
+                        .font(.caption)
+                        .foregroundStyle(usage.isDailyFive ? PanshiTheme.brass : .secondary)
+                } else {
+                    Text("免費版每天可查 3 檔今日五盤以外的股票。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
+    }
+
+    private func queryLimitCard(state: AppState) -> some View {
+        PanshiCard {
+            VStack(alignment: .leading, spacing: 14) {
+                Label("今天的 3 檔已查完", systemImage: "moon.stars")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(PanshiTheme.paper)
+                Text("今日五盤仍可閱讀。額度會在臺北時間午夜重置，升級 Pro 則不限查詢檔數。")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                HStack(spacing: 10) {
+                    Button("回今日五盤") { state.selectedTab = .daily }
+                        .buttonStyle(.borderedProminent)
+                        .tint(PanshiTheme.brass)
+                        .foregroundStyle(PanshiTheme.midnight)
+                    Button("查看 Pro") { state.isShowingPaywall = true }
+                        .buttonStyle(.bordered)
+                }
+            }
+        }
+    }
+
+    private func usageText(_ usage: QueryUsage) -> String {
+        if usage.isPro { return "盤勢 Pro・股票查詢不限檔數" }
+        if usage.isDailyFive { return "今日五盤・這次不扣額度，今天還可查 (usage.remaining ?? 0) 檔" }
+        return "今日額外查詢 (usage.used)／(usage.dailyLimit) 檔・同一檔重看不重扣"
     }
 
     @ViewBuilder

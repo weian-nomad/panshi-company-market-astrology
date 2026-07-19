@@ -13,10 +13,12 @@ import {
 } from "@/lib/company-data";
 import { TPEX_COMPANY_ENDPOINT, TPEX_PRICE_SOURCE_PAGE } from "@/lib/tpex-data";
 import { findCompanyUnified, getPriceBarsUnified } from "@/lib/market-data";
+import { assessQueryAccess, attachQueryCookie } from "@/lib/query-access";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
+  let access: Awaited<ReturnType<typeof assessQueryAccess>> | null = null;
   try {
     const url = new URL(request.url);
     const symbol = String(url.searchParams.get("symbol") || "2330").trim();
@@ -39,6 +41,18 @@ export async function GET(request: Request) {
         { error: `找不到上市櫃公司 ${symbol}，請確認股票代號。` },
         { status: 404 },
       );
+    }
+    access = await assessQueryAccess(request, { kind: "company", symbol });
+    if (!access.usage.allowed) {
+      const response = NextResponse.json(
+        {
+          error: "今天 3 檔額外查詢已用完。今日五盤仍可閱讀，明天會重新計算額度。",
+          code: "FREE_DAILY_LIMIT_REACHED",
+          usage: access.usage,
+        },
+        { status: 429, headers: { "Cache-Control": "private, no-store" } },
+      );
+      return attachQueryCookie(response, access);
     }
     const establishedDate = compactDate(row.establishedDate);
     const listingDate = compactDate(row.listingDate);
@@ -106,13 +120,16 @@ export async function GET(request: Request) {
       },
     };
 
-    return NextResponse.json(payload, {
-      headers: {
-        "Cache-Control": "public, s-maxage=21600, stale-while-revalidate=86400",
-      },
+    const response = NextResponse.json({ ...payload, usage: access.usage }, {
+      headers: { "Cache-Control": "private, no-store" },
     });
+    return attachQueryCookie(response, access);
   } catch (error) {
     const message = error instanceof Error ? error.message : "資料暫時無法取得";
-    return NextResponse.json({ error: message }, { status: 502 });
+    const response = NextResponse.json(
+      { error: message },
+      { status: 502, headers: { "Cache-Control": "private, no-store" } },
+    );
+    return access ? attachQueryCookie(response, access) : response;
   }
 }

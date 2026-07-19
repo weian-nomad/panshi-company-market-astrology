@@ -10,7 +10,7 @@
     "build": "next build --webpack",
     "start": "next start -H 0.0.0.0",
     "test": "npm run build && npm run test:standalone && node --test tests/rendered-html.test.mjs && npm run test:logic",
-    "test:logic": "tsx --test tests/inquiry-logic.test.ts",
+    "test:logic": "tsx --test tests/*.test.ts",
     "test:standalone": "node scripts/assert-standalone-clean.mjs",
     "test:studio": "tsx --test studio/__tests__/*.test.ts",
     "test:browser": "node scripts/browser-smoke.mjs",
@@ -25,6 +25,7 @@
     "lint": "eslint . --ignore-pattern .next --ignore-pattern dist"
   },
   "dependencies": {
+    "@apple/app-store-server-library": "^3.1.0",
     "@fontsource/ibm-plex-mono": "^5.2.7",
     "@remotion/captions": "4.0.489",
     "@remotion/cli": "4.0.489",

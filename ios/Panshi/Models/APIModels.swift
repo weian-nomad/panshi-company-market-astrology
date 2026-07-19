@@ -23,6 +23,7 @@ struct CompanyPayload: Codable, Sendable {
     let bars: [PriceBar]
     let anchors: CompanyAnchors
     let sources: CompanySources
+    let usage: QueryUsage?
 }
 
 struct CompanyIdentity: Codable, Sendable {
@@ -129,6 +130,20 @@ struct InquiryPayload: Codable, Sendable {
     let events: EventPayload
     let boundaries: BoundaryPayload
     let sources: InquirySources
+    let usage: QueryUsage?
+}
+
+struct QueryUsage: Codable, Equatable, Sendable {
+    let tier: String
+    let dailyLimit: Int
+    let used: Int
+    let remaining: Int?
+    let counted: Bool
+    let isDailyFive: Bool
+    let allowed: Bool
+    let resetAt: String
+
+    var isPro: Bool { tier == "pro" }
 }
 
 struct CompanyBrief: Codable, Sendable {
@@ -269,6 +284,8 @@ struct InquirySources: Codable, Sendable {
 
 struct APIErrorEnvelope: Codable, Sendable {
     let error: String
+    let code: String?
+    let usage: QueryUsage?
 }
 
 struct DailyResearchPayload: Codable, Sendable {

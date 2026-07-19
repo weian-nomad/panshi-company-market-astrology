@@ -6,6 +6,7 @@ import type {
   InquiryHorizon,
   InquiryIntent,
   InquiryPayload,
+  QueryUsage,
   SavedInquiry,
 } from "@/lib/inquiry-types";
 import {
@@ -239,6 +240,7 @@ export function InquiryWorkbench({
   anchorLabel,
   anchorDate,
   anchorPrecisionLabel,
+  usage,
   onJournalDirtyChange,
 }: {
   symbol: string;
@@ -246,6 +248,7 @@ export function InquiryWorkbench({
   anchorLabel: string;
   anchorDate: string;
   anchorPrecisionLabel: string;
+  usage: QueryUsage | null;
   onJournalDirtyChange: (dirty: boolean) => void;
 }) {
   const [dateBounds] = useState(() => {
@@ -514,6 +517,13 @@ export function InquiryWorkbench({
             <span aria-hidden="true">↗</span>
           </button>
           <small>不產生買賣、目標價或部位建議。</small>
+          <small>
+            {usage?.tier === "pro"
+              ? "盤勢 Pro 查詢不限檔數。"
+              : usage?.isDailyFive
+                ? `這檔在今日五盤內，不扣額度；今天還可查 ${usage.remaining ?? 0} 檔。`
+                : `免費版今日已查 ${usage?.used ?? 0}／${usage?.dailyLimit ?? 3} 檔；同一檔重問不重扣。`}
+          </small>
         </div>
       </form>
 

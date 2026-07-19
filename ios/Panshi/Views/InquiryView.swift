@@ -11,6 +11,8 @@ struct InquiryView: View {
     @State private var horizon: InquiryHorizon = .standard
     @State private var result: InquiryPayload?
     @State private var state: LoadState = .idle
+    @State private var queryUsage: QueryUsage?
+    @State private var reachedFreeDailyLimit = false
     @State private var showPaywall = false
     @State private var reason = ""
     @State private var disconfirmingEvidence = ""
@@ -41,7 +43,11 @@ struct InquiryView: View {
                     case .loading:
                         LoadingCard(message: "正在對齊交易日與同組態歷史…")
                     case .failed(let message):
-                        FailureCard(message: message) { Task { await runInquiry() } }
+                        if reachedFreeDailyLimit {
+                            queryLimitCard()
+                        } else {
+                            FailureCard(message: message) { Task { await runInquiry() } }
+                        }
                     case .ready:
                         if let result { resultContent(result) }
                     }
@@ -114,6 +120,37 @@ struct InquiryView: View {
                 Text("觀測期只改變歷史比較範圍，不會產生方向建議。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                if let usage = queryUsage ?? app.queryUsage {
+                    Text(usageText(usage))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(usage.isDailyFive ? PanshiTheme.brass : .secondary)
+                } else {
+                    Text("免費版每天可查 3 檔今日五盤以外的股票；同一檔重查不重扣。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    private func queryLimitCard() -> some View {
+        PanshiCard {
+            VStack(alignment: .leading, spacing: 14) {
+                Label("今天的 3 檔已查完", systemImage: "moon.stars")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(PanshiTheme.paper)
+                Text("今日五盤仍可閱讀。額度會在臺北時間午夜重置，Pro 查詢不限檔數。")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                HStack(spacing: 10) {
+                    Button("回今日五盤") { appState.selectedTab = .daily }
+                        .buttonStyle(.borderedProminent)
+                        .tint(PanshiTheme.brass)
+                        .foregroundStyle(PanshiTheme.midnight)
+                    Button("查看 Pro") { showPaywall = true }
+                        .buttonStyle(.bordered)
+                }
             }
         }
     }
@@ -400,6 +437,7 @@ struct InquiryView: View {
 
     private func runInquiry() async {
         state = .loading
+        reachedFreeDailyLimit = false
         saveMessage = nil
         do {
             let payload = try await APIClient.shared.inquiry(
@@ -409,6 +447,8 @@ struct InquiryView: View {
                 horizon: horizon
             )
             result = payload
+            queryUsage = payload.usage
+            appState.queryUsage = payload.usage
             reviewDate = Calendar.current.date(
                 byAdding: .day,
                 value: Int(ceil(Double(horizon.rawValue) * 7 / 5)) + 2,
@@ -416,6 +456,11 @@ struct InquiryView: View {
             ) ?? targetDate
             state = .ready
             await ads.noteResearchCompleted(isPro: subscription.isPro)
+        } catch APIClientError.freeDailyLimit(let usage) {
+            queryUsage = usage
+            appState.queryUsage = usage
+            reachedFreeDailyLimit = true
+            state = .failed(APIClientError.freeDailyLimit(usage).errorDescription ?? "今日額度已用完。")
         } catch {
             state = .failed(error.panshiUserFacingMessage)
         }
@@ -465,6 +510,12 @@ struct InquiryView: View {
     private func range(_ lower: Double?, _ upper: Double?) -> String {
         guard let lower, let upper else { return "樣本不足" }
         return "\(PanshiFormat.percent(lower)) 至 \(PanshiFormat.percent(upper))"
+    }
+
+    private func usageText(_ usage: QueryUsage) -> String {
+        if usage.isPro { return "盤勢 Pro・股票查詢不限檔數" }
+        if usage.isDailyFive { return "今日五盤・不扣額度，今天還可查 (usage.remaining ?? 0) 檔" }
+        return "今日額外查詢 (usage.used)／(usage.dailyLimit) 檔・同一檔重查不重扣"
     }
 
     private static func nextWeekday(after date: Date) -> Date {

@@ -62,6 +62,13 @@ struct DailyResearchView: View {
                         .padding(.horizontal, 9)
                         .padding(.vertical, 5)
                         .background(PanshiTheme.brass, in: Capsule())
+                } else {
+                    Text("不扣額度")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(PanshiTheme.brass)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
+                        .background(PanshiTheme.brass.opacity(0.12), in: Capsule())
                 }
             }
         }
