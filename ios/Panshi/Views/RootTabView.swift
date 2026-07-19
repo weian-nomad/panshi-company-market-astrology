@@ -49,5 +49,8 @@ struct RootTabView: View {
         }
         .toolbarBackground(PanshiTheme.midnight.opacity(0.96), for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
+        .sheet(isPresented: $state.isShowingPaywall) {
+            PaywallView()
+        }
     }
 }

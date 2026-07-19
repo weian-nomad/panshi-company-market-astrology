@@ -25,6 +25,7 @@ final class AppState {
     var selectedAnchor: AnchorKey = .listing
     var company: CompanyPayload?
     var companyState: LoadState = .idle
+    var isShowingPaywall = false
 
     private let api: APIClient
 
@@ -69,10 +70,18 @@ final class AppState {
     func handle(url: URL) {
         guard url.scheme == "panshi" else { return }
         let parts = url.pathComponents.filter { $0 != "/" }
-        let candidate = url.host == "company" ? parts.first : nil
-        guard let symbol = candidate,
-              symbol.range(of: #"^\d{4,6}$"#, options: .regularExpression) != nil else { return }
-        selectCompany(symbol: symbol)
+        switch url.host {
+        case "company", "inquiry":
+            guard let symbol = parts.first,
+                  symbol.range(of: #"^\d{4,6}$"#, options: .regularExpression) != nil else { return }
+            selectCompany(symbol: symbol, open: url.host == "inquiry" ? .inquiry : .observe)
+        case "daily":
+            selectedTab = .daily
+        case "pro":
+            isShowingPaywall = true
+        default:
+            return
+        }
     }
 }
 

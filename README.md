@@ -24,6 +24,7 @@
 - 本機觀察簿：研究假說、反證條件、回看日期與當時資料日期。
 - 「今日五盤」自動內容引擎：每個交易日從五種不同研究理由各選一檔，產生一支 Remotion 直式影片並交由 Nomad 頻道發布。
 - 原生 iPhone App：SwiftUI 公司盤、今日五盤、日期問盤、觀察簿、StoreKit 2 訂閱與廣告節點。
+- iPhone 深連結：`panshi://company/2330`、`panshi://inquiry/2330`、`panshi://daily`、`panshi://pro`，供官網與每日短片直接帶入對應研究畫面。
 
 ## 免費版與盤勢 Pro
 

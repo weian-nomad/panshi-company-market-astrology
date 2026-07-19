@@ -84,5 +84,6 @@ schemes:
         - PanshiTests
     run:
       config: Debug
+      storeKitConfiguration: StoreKit/Panshi.storekit
     archive:
       config: Release

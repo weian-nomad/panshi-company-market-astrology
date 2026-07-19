@@ -18,6 +18,8 @@
 
 Apple introductory-offer setup must match the in-app wording exactly: [Set up introductory offers for auto-renewable subscriptions](https://developer.apple.com/help/app-store-connect/manage-subscriptions/set-up-introductory-offers-for-auto-renewable-subscriptions).
 
+`StoreKit/Panshi.storekit` uses NT$190/month only as a local simulator fixture. App Store Connect remains the source of truth for the launch price; store screenshots must be regenerated if the approved launch price differs.
+
 ## Release gates
 
 - [ ] Taiwan product-law review has approved the actual individual-company and Daily Five experience.
